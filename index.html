@@ -251,7 +251,7 @@ tr:hover td{background:#f7fafc}
         </div>
       </div>
       <table>
-        <thead><tr><th>#</th><th>F.I.O</th><th>Guruh</th><th>Umumiy</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>To'langan</th><th>Qoldiq</th><th>Amal</th></tr></thead>
+        <thead><tr><th>#</th><th>F.I.O</th><th>Guruh</th><th>Umumiy</th><th>Boshlang'ich</th><th>2-to'lov</th><th>3-to'lov</th><th>4-to'lov</th><th>5-to'lov</th><th>To'langan</th><th>Qoldiq</th><th>Amal</th></tr></thead>
         <tbody id="tolovlarTable"><tr><td colspan="12" style="text-align:center;color:#aaa">Yuklanmoqda...</td></tr></tbody>
       </table>
     </div>
@@ -336,16 +336,20 @@ tr:hover td{background:#f7fafc}
   <div class="modal">
     <h3 id="tolovModalTitle">To'lov kiritish</h3>
     <div id="tolovInfo" style="background:#f7fafc;border-radius:8px;padding:14px;margin-bottom:16px;font-size:14px"></div>
+    <div class="form-group">
+      <label>💵 Boshlang'ich to'lov</label>
+      <input id="t1" type="number" placeholder="0" oninput="calcTolov()" style="border-color:#38a169" />
+    </div>
+    <div style="font-size:13px;color:#666;margin:-8px 0 12px;padding-left:2px">📅 Qolgan bo'lib to'lovlar:</div>
     <div class="form-row">
-      <div class="form-group"><label>1-to'lov</label><input id="t1" type="number" placeholder="0" oninput="calcTolov()" /></div>
       <div class="form-group"><label>2-to'lov</label><input id="t2" type="number" placeholder="0" oninput="calcTolov()" /></div>
+      <div class="form-group"><label>3-to'lov</label><input id="t3" type="number" placeholder="0" oninput="calcTolov()" /></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>3-to'lov</label><input id="t3" type="number" placeholder="0" oninput="calcTolov()" /></div>
       <div class="form-group"><label>4-to'lov</label><input id="t4" type="number" placeholder="0" oninput="calcTolov()" /></div>
+      <div class="form-group"><label>5-to'lov</label><input id="t5" type="number" placeholder="0" oninput="calcTolov()" /></div>
     </div>
-    <div class="form-group"><label>5-to'lov</label><input id="t5" type="number" placeholder="0" oninput="calcTolov()" /></div>
-    <div style="background:#ebf8ff;border-radius:8px;padding:12px;font-size:14px" id="tolovCalc"></div>
+    <div style="background:#ebf8ff;border-radius:8px;padding:12px;font-size:14px;margin-top:8px" id="tolovCalc"></div>
     <div class="modal-footer">
       <button class="btn btn-success" onclick="saveTolov()">Saqlash</button>
       <button class="btn" style="background:#eee" onclick="closeModal('tolovModal')">Bekor</button>
