@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AvtoAkbar - Avtomaktab Boshqaruv Tizimi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.39.3/umd/supabase.js"></script>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --blue: #1a56db; --blue-dark: #1041b2; --blue-light: #e8f0fe;
+            --green: #057a55; --green-lt: #d5f0e7; --red: #c81e1e; --red-lt: #fde8e8;
+            --orange: #d97706; --gray: #6b7280; --gray-lt: #f3f4f6;
+            --shadow: 0 2px 12px rgba(0,0,0,.10); --radius: 10px;
+        }
+        body { background: #f0f2f8; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #1e2430; }
+
+        /* HOME */
+        #homePage {
+            height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: linear-gradient(145deg, #0d3780 0%, #1a56db 60%, #3b82f6 100%);
+            color: #fff; text-align: center; position: relative;
+        }
+        .home-logo { font-size: 56px; margin-bottom: 10px; filter: drop-shadow(0 4px 12px rgba(0,0,0,.3)); }
+        #homePage h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        #homePage p  { opacity: .75; font-size: 14px; margin-bottom: 36px; }
+        .home-btn {
+            padding: 16px 52px; font-size: 18px; font-weight: 700;
+            border: none; border-radius: 50px; cursor: pointer;
+            background: #fff; color: var(--blue);
+            box-shadow: 0 6px 24px rgba(0,0,0,.25); transition: transform .15s;
+        }
+        .home-btn:hover { transform: translateY(-2px); }
+        .home-blocked-btn {
+            position: absolute; bottom: 24px; right: 24px;
+            background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.35);
+            color: #fff; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 13px;
+        }
+
+        /* PAGES */
+        .page { display: none; min-height: 100vh; padding: 24px 20px; }
+
+        /* TOPBAR */
+        .topbar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 22px; flex-wrap: wrap; gap: 10px;
+            background: #fff; padding: 14px 20px; border-radius: var(--radius); box-shadow: var(--shadow);
+        }
+        .topbar h2 { font-size: 19px; color: #1e2430; display: flex; align-items: center; gap: 8px; }
+        .topbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 8px 16px; border: none; border-radius: 8px;
+            cursor: pointer; font-size: 13px; font-weight: 600; transition: filter .15s, transform .1s;
+        }
+        .btn:hover  { filter: brightness(1.1); }
+        .btn:active { transform: scale(.97); }
+        .btn-blue   { background: var(--blue);   color: #fff; }
+        .btn-green  { background: var(--green);  color: #fff; }
+        .btn-red    { background: var(--red);    color: #fff; }
+        .btn-orange { background: var(--orange); color: #fff; }
+        .btn-gray   { background: var(--gray);   color: #fff; }
+        .btn-sm     { padding: 5px 11px; font-size: 12px; }
+
+        /* CARDS */
+        .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+        .card {
+            background: #fff; padding: 18px; border-radius: var(--radius);
+            box-shadow: var(--shadow); border: 2px solid transparent; transition: box-shadow .15s, transform .15s;
+        }
+        .card:hover { box-shadow: 0 6px 22px rgba(0,0,0,.13); transform: translateY(-2px); }
+        .card h3    { font-size: 16px; margin-bottom: 4px; }
+        .card small { color: var(--gray); font-size: 12px; display: block; margin-bottom: 14px; }
+        .card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+        .card-green { border-color: var(--green)!important; background: #f0faf6!important; }
+        .card-red   { border-color: var(--red)!important;   background: #fff5f5!important; }
+
+        /* GROUP BLOCK */
+        .group-block { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 28px; overflow: hidden; }
+        .group-block-header {
+            background: linear-gradient(90deg, var(--blue-dark), var(--blue));
+            color: #fff; padding: 14px 20px;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+        }
+        .group-block-header h3 { font-size: 16px; margin-bottom: 2px; }
+        .teacher-label { font-size: 12px; opacity: .85; }
+        .hdr-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        /* TABLE */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead tr { background: #e8f0fe; }
+        th, td { padding: 9px 11px; text-align: center; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+        th { font-weight: 700; color: #333; font-size: 12px; text-transform: uppercase; }
+        tbody tr:hover { background: #f5f7ff; }
+        tbody tr.row-paid { background: #edfaf3!important; }
+        tbody tr.row-paid:hover { background: #d5f0e7!important; }
+        tbody tr.row-debt { background: #fff5f5!important; }
+        tbody tr.row-debt:hover { background: #fde8e8!important; }
+        td.td-left { text-align: left; }
+        .badge-ok   { color: var(--green); font-weight: 700; }
+        .badge-debt { color: var(--red);   font-weight: 700; }
+        .badge-warn { color: var(--orange);font-weight: 700; }
+
+        /* PASSWORDS */
+        .pass-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+        .pass-table th { background: var(--blue); color: #fff; padding: 11px 16px; text-align: left; font-size: 13px; }
+        .pass-table td { padding: 11px 16px; border-bottom: 1px solid #e5e7eb; }
+
+        /* MODAL */
+        .overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(10,15,30,.5); z-index: 999;
+            justify-content: center; align-items: flex-start;
+            padding: 40px 12px; backdrop-filter: blur(2px);
+        }
+        .overlay.on { display: flex; }
+        .modal {
+            background: #fff; border-radius: 16px; padding: 28px 30px;
+            width: 460px; max-width: 100%; box-shadow: 0 12px 40px rgba(0,0,0,.22);
+            max-height: 88vh; overflow-y: auto;
+        }
+        .modal h3 { margin-bottom: 18px; font-size: 18px; color: var(--blue); border-bottom: 2px solid var(--blue-light); padding-bottom: 10px; }
+
+        /* FORM */
+        .frow { margin-bottom: 14px; }
+        .frow label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 5px; color: #4b5563; text-transform: uppercase; }
+        .frow input, .frow select {
+            width: 100%; padding: 9px 13px; border: 1.5px solid #d1d5db; border-radius: 8px;
+            font-size: 14px; outline: none; background: #fafafa; color: #1e2430;
+        }
+        .frow input:focus, .frow select:focus { border-color: var(--blue); background: #fff; }
+        .ferr { color: var(--red); font-size: 11px; margin-top: 4px; display: none; }
+        .modal-foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+
+        /* INFO BAR */
+        .info-bar { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #92400e; }
+
+        /* EMPTY */
+        .empty-msg { padding: 40px; text-align: center; color: var(--gray); font-size: 15px; }
+        .empty-icon { font-size: 48px; display: block; margin-bottom: 12px; }
+
+        /* STATS */
+        .stats-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 22px; }
+        .stat-card { background: #fff; border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); text-align: center; }
+        .stat-card .stat-num { font-size: 24px; font-weight: 800; color: var(--blue); }
+        .stat-card .stat-lbl { font-size: 11px; color: var(--gray); margin-top: 2px; text-transform: uppercase; }
+
+        /* LOADER */
+        .loader { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .loading-box { background: #fff; border-radius: 12px; padding: 24px 32px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+        .loading-box .spin { width: 36px; height: 36px; border: 4px solid #e5e7eb; border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+    </style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="homePage">
+    <div class="home-logo">🚗</div>
+    <h1>AvtoAkbar Avtomaktab</h1>
+    <p>Boshqaruv tizimiga xush kelibsiz</p>
+    <button class="home-btn" onclick="openSystem()">Tizimga Kirish</button>
+    <button class="home-blocked-btn" onclick="openBlockedPage()">🔒 Bloklanganlar</button>
+</div>
+
+<!-- FILIALLAR -->
+<div id="panelPage" class="page">
+    <div class="topbar">
+        <h2>🏢 Filiallar</h2>
+        <div class="topbar-actions">
+            <button class="btn btn-orange" onclick="openPasswordsPage()">🔑 Parollar</button>
+            <button class="btn btn-green"  onclick="addFilial()">+ Filial qo'shish</button>
+        </div>
+    </div>
+    <div id="filialStats" class="stats-strip"></div>
+    <div class="cards" id="filialsBox"></div>
+</div>
+
+<!-- PAROLLAR -->
+<div id="passwordsPage" class="page">
+    <div class="topbar">
+        <h2>🔑 Filial Parollari</h2>
+        <button class="btn btn-blue" onclick="go('panelPage'); renderFilials()">← Orqaga</button>
+    </div>
+    <div class="info-bar">Bu sahifaga kirish paroli: <b>quvonch125</b></div>
+    <div id="passTableWrap"></div>
+</div>
+
+<!-- GURUHLAR -->
+<div id="groupPage" class="page">
+    <div class="topbar">
+        <h2 id="groupPageTitle">Guruhlar</h2>
+        <div class="topbar-actions">
+            <button class="btn btn-blue"  onclick="go('panelPage'); renderFilials()">← Orqaga</button>
+            <button class="btn btn-green" onclick="addGroup()">+ Guruh qo'shish</button>
+        </div>
+    </div>
+    <div class="cards" id="groupsBox"></div>
+</div>
+
+<!-- TALABALAR -->
+<div id="studentPage" class="page">
+    <div class="topbar">
+        <h2 id="studentPageTitle">Talabalar</h2>
+        <button class="btn btn-blue" onclick="go('groupPage'); renderGroups()">← Orqaga</button>
+    </div>
+    <div id="groupTablesBox"></div>
+</div>
+
+<!-- MODALLAR -->
+
+<!-- Admin Parol Modal (prompt() o'rniga) -->
+<div class="overlay" id="adminPassOverlay">
+    <div class="modal" style="width:360px">
+        <h3 id="adminPassTitle">🔐 Parol kiriting</h3>
+        <div class="frow">
+            <label>Parol</label>
+            <input type="password" id="inp_adminpass" placeholder="Parolni kiriting" onkeydown="if(event.key==='Enter') confirmAdminPass()">
+            <div class="ferr" id="err_adminpass">❌ Parol noto'g'ri!</div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-gray" onclick="cancelAdminPass()">Bekor</button>
+            <button class="btn btn-green" onclick="confirmAdminPass()">Kirish</button>
+        </div>
+    </div>
+</div>
+
+<!-- Filial Auth -->
+<div class="overlay" id="filialAuthOverlay">
+    <div class="modal">
+        <h3 id="filialAuthTitle">🔐 Filialga Kirish</h3>
+        <div class="frow">
+            <label>Filial paroli</label>
+            <input type="password" id="inp_fpass" placeholder="Parolni kiriting">
+            <div class="ferr" id="err_fpass">❌ Parol noto'g'ri!</div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-gray"  onclick="closeOverlay('filialAuthOverlay')">Bekor</button>
+            <button class="btn btn-green" onclick="confirmFilialAuth()">Kirish</button>
+        </div>
+    </div>
+</div>
+
+<!-- Filial Add/Edit -->
+<div class="overlay" id="filialModal">
+    <div class="modal">
+        <h3 id="filialModalTitle">🏢 Filial Qo'shish</h3>
+        <div class="frow">
+            <label>Filial nomi</label>
+            <input type="text" id="inp_fname" placeholder="Masalan: Chilonzor filiali">
+            <div class="ferr" id="err_fname">❌ Nomni kiriting!</div>
+        </div>
+        <div class="frow">
+            <label>Kirish paroli</label>
+            <input type="text" id="inp_fpassnew" placeholder="Filial uchun parol">
+            <div class="ferr" id="err_fpassnew">❌ Parolni kiriting!</div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-gray"  onclick="closeOverlay('filialModal')">Bekor</button>
+            <button class="btn btn-green" onclick="saveFilial()">Saqlash</button>
+        </div>
+    </div>
+</div>
+
+<!-- Guruh Add/Edit -->
+<div class="overlay" id="groupModal">
+    <div class="modal">
+        <h3 id="groupModalTitle">👥 Guruh Qo'shish</h3>
+        <div class="frow">
+            <label>Guruh raqami (masalan: 1)</label>
+            <input type="number" id="inp_gnum" placeholder="1" min="1">
+            <div class="ferr" id="err_gnum">❌ To'g'ri raqam kiriting!</div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-gray"  onclick="closeOverlay('groupModal')">Bekor</button>
+            <button class="btn btn-green" onclick="saveGroup()">Saqlash</button>
+        </div>
+    </div>
+</div>
+
+<!-- Talaba Add/Edit -->
+<div class="overlay" id="studentModal">
+    <div class="modal">
+        <h3 id="studentModalTitle">🎓 Talaba Qo'shish</h3>
+        <div class="frow">
+            <label>F.I.O (faqat harflar)</label>
+            <input type="text" id="inp_fio" placeholder="Ism Familiya Sharif">
+            <div class="ferr" id="err_fio">❌ Faqat harflar kiritilsin!</div>
+        </div>
+        <div class="frow">
+            <label>Tug'ilgan yil</label>
+            <input type="number" id="inp_year" placeholder="Masalan: 2000" min="1945" max="2009">
+            <div class="ferr" id="err_year">❌ To'g'ri yil kiriting (kamida 17 yosh)!</div>
+        </div>
+        <div class="frow">
+            <label>Tug'ilgan kun</label>
+            <input type="number" id="inp_day" placeholder="Masalan: 20" min="1" max="31">
+            <div class="ferr" id="err_day">❌ To'g'ri kun kiriting (1–31)!</div>
+        </div>
+        <div class="frow">
+            <label>Tug'ilgan oy</label>
+            <select id="inp_month">
+                <option value="">— tanlang —</option>
+                <option>Yanvar</option><option>Fevral</option><option>Mart</option>
+                <option>Aprel</option><option>May</option><option>Iyun</option>
+                <option>Iyul</option><option>Avgust</option><option>Sentyabr</option>
+                <option>Oktyabr</option><option>Noyabr</option><option>Dekabr</option>
+            </select>
+            <div class="ferr" id="err_month">❌ Tug'ilgan oyni tanlang!</div>
+        </div>
+        <div class="frow">
+            <label>Viloyat</label>
+            <select id="inp_region">
+                <option value="">— tanlang —</option>
+                <option>Toshkent shahri</option><option>Toshkent viloyati</option>
+                <option>Andijon</option><option>Farg'ona</option><option>Namangan</option>
+                <option>Samarqand</option><option>Buxoro</option><option>Navoiy</option>
+                <option>Qashqadaryo</option><option>Surxondaryo</option><option>Jizzax</option>
+                <option>Sirdaryo</option><option>Xorazm</option><option>Qoraqalpog'iston</option>
+            </select>
+            <div class="ferr" id="err_region">❌ Viloyatni tanlang!</div>
+        </div>
+        <div class="frow">
+            <label>Tuman</label>
+            <input type="text" id="inp_district" placeholder="Tuman nomi">
+            <div class="ferr" id="err_district">❌ Tumanni kiriting!</div>
+        </div>
+        <div class="frow">
+            <label>Mahalla</label>
+            <input type="text" id="inp_mahalla" placeholder="Mahalla nomi">
+            <div class="ferr" id="err_mahalla">❌ Mahallani kiriting!</div>
+        </div>
+        <div class="frow">
+            <label>Ko'cha va uy raqami</label>
+            <input type="text" id="inp_street" placeholder="Ko'cha, uy raqami">
+            <div class="ferr" id="err_street">❌ Ko'cha va uy raqamini kiriting!</div>
+        </div>
+        <div class="frow">
+            <label>Umumiy to'lov summasi (so'm)</label>
+            <input type="number" id="inp_fee" placeholder="Masalan: 1500000" min="1">
+            <div class="ferr" id="err_fee">❌ To'lov summasini kiriting!</div>
+        </div>
+        <div class="frow">
+            <label>Dastlabki to'lov (so'm) — kamida 40%</label>
+            <input type="number" id="inp_first_pay" placeholder="Kamida 40% kiriting" min="0">
+            <div class="ferr" id="err_first_pay">❌ To'lov 40% dan kam yoki umumiy summadan ko'p bo'lmasin!</div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-gray"  onclick="closeOverlay('studentModal')">Bekor</button>
+            <button class="btn btn-green" onclick="saveStudent()">Saqlash</button>
+        </div>
+    </div>
+</div>
+
+<!-- O'qituvchi -->
+<div class="overlay" id="teacherModal">
+    <div class="modal">
+        <h3>👨‍🏫 O'qituvchini Belgilang</h3>
+        <div class="info-bar">🎉 Bu guruhda 24 ta talaba to'ldi! Endi o'qituvchini belgilang.</div>
+        <div class="frow">
+            <label>O'qituvchi Ism Familiyasi (faqat harflar)</label>
+            <input type="text" id="inp_teacher" placeholder="Ism Familiya">
+            <div class="ferr" id="err_teacher">❌ Faqat harflar kiritilsin!</div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-gray"  onclick="closeOverlay('teacherModal')">Keyinroq</button>
+            <button class="btn btn-green" onclick="saveTeacher()">Saqlash</button>
+        </div>
+    </div>
+</div>
+
+<!-- To'lov -->
+<div class="overlay" id="payModal">
+    <div class="modal">
+        <h3 id="payModalTitle">💳 To'lov</h3>
+        <div class="frow">
+            <label>To'lov bosqichi</label>
+            <select id="pay_step">
+                <option value="1">1-to'lov</option><option value="2">2-to'lov</option>
+                <option value="3">3-to'lov</option><option value="4">4-to'lov</option>
+                <option value="5">5-to'lov</option>
+            </select>
+        </div>
+        <div class="frow">
+            <label>Summa (so'm)</label>
+            <input type="number" id="pay_amount" placeholder="Masalan: 300000" min="1">
+            <div class="ferr" id="err_pay">❌ To'g'ri summa kiriting!</div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-gray"  onclick="closeOverlay('payModal')">Bekor</button>
+            <button class="btn btn-green" onclick="savePayment()">Saqlash</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ═══════════════════ SUPABASE SETUP ═══════════════════ */
+const SUPABASE_URL = "https://byilxvbtmdhdbchcyqts.supabase.co";
+const SUPABASE_KEY = "sb_publishable_hlJl865sPjyKeEASn2EwOQ_hkkn3PGS";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ═══════════════════ MODAL ALERT & CONFIRM ═══════════════════ */
+function showAlert(msg) {
+    return new Promise(resolve => {
+        const d = document.createElement("div");
+        d.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px";
+        d.innerHTML = `<div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:380px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.25);text-align:center">
+            <p style="font-size:15px;color:#1e2430;margin-bottom:20px;line-height:1.5">${msg}</p>
+            <button onclick="this.closest('[style]').remove(); arguments[0].call()" style="background:#1a56db;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">OK</button>
+        </div>`;
+        d.querySelector("button").onclick = () => { d.remove(); resolve(); };
+        document.body.appendChild(d);
+    });
+}
+
+function showConfirm(msg) {
+    return new Promise(resolve => {
+        const d = document.createElement("div");
+        d.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px";
+        d.innerHTML = `<div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:380px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.25);text-align:center">
+            <p style="font-size:15px;color:#1e2430;margin-bottom:20px;line-height:1.5">${msg}</p>
+            <div style="display:flex;gap:10px;justify-content:center">
+                <button id="cnf_no"  style="background:#6b7280;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">Bekor</button>
+                <button id="cnf_yes" style="background:#c81e1e;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600">Ha, o'chir</button>
+            </div>
+        </div>`;
+        d.querySelector("#cnf_yes").onclick = () => { d.remove(); resolve(true);  };
+        d.querySelector("#cnf_no").onclick  = () => { d.remove(); resolve(false); };
+        document.body.appendChild(d);
+    });
+}
+
+/* ═══════════════════ ADMIN PAROL MODAL ═══════════════════ */
+let _passResolve = null;
+
+function askPass(title = "🔐 Parol kiriting") {
+    return new Promise(resolve => {
+        _passResolve = resolve;
+        document.getElementById("adminPassTitle").textContent = title;
+        document.getElementById("inp_adminpass").value = "";
+        ferr("err_adminpass", false);
+        openOverlay("adminPassOverlay");
+        setTimeout(() => document.getElementById("inp_adminpass").focus(), 100);
+    });
+}
+
+async function confirmAdminPass() {
+    const val = document.getElementById("inp_adminpass").value;
+    const ok  = await checkPass(val);
+    if (!ok) {
+        ferr("err_adminpass", true);
+        // Agar tizimga kirish bo'lsa loginAttempts ni oshir
+        if (_passResolve && document.getElementById("adminPassTitle").textContent.includes("Tizimga")) {
+            registerFail();
+        }
+        return;
+    }
+    closeOverlay("adminPassOverlay");
+    if (_passResolve) { _passResolve(val); _passResolve = null; }
+}
+
+function cancelAdminPass() {
+    closeOverlay("adminPassOverlay");
+    if (_passResolve) { _passResolve(null); _passResolve = null; }
+}
+
+
+function showLoader(msg = "Yuklanmoqda...") {
+    let el = document.getElementById("globalLoader");
+    if (!el) {
+        el = document.createElement("div");
+        el.id = "globalLoader";
+        el.className = "loading-overlay";
+        el.innerHTML = `<div class="loading-box"><div class="spin"></div><p style="color:#374151;font-size:14px">${msg}</p></div>`;
+        document.body.appendChild(el);
+    } else {
+        el.querySelector("p").textContent = msg;
+        el.style.display = "flex";
+    }
+}
+function hideLoader() {
+    const el = document.getElementById("globalLoader");
+    if (el) el.style.display = "none";
+}
+
+/* ═══════════════════ XAVFSIZLIK ═══════════════════ */
+const MAIN_PASS_HASH = "b149b60437a1d15d9795ba9c49485fcd717fbfcea906e0099ff2c2a7f2a509be";
+
+async function hashStr(input) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+async function checkPass(input) {
+    if (!input) return false;
+    return (await hashStr(input)) === MAIN_PASS_HASH;
+}
+
+let loginAttempts = parseInt(localStorage.getItem("loginAttempts") || "0");
+let blockedUntil  = parseInt(localStorage.getItem("blockedUntil")  || "0");
+
+function getDeviceId() {
+    let id = localStorage.getItem("deviceId");
+    if (!id) {
+        id = "dev_" + Math.random().toString(36).substr(2,12) + "_" + Date.now();
+        localStorage.setItem("deviceId", id);
+    }
+    return id;
+}
+
+function checkBlock() {
+    const devId     = getDeviceId();
+    const permaList = JSON.parse(localStorage.getItem("blockedPerma") || "[]");
+    if (permaList.includes(devId)) { showBlocked("DOIMIY BLOKLANGAN"); return true; }
+    if (Date.now() < blockedUntil) {
+        const min = Math.ceil((blockedUntil - Date.now()) / 60000);
+        showBlocked("Vaqtinchalik bloklangan. Qolgan vaqt: " + min + " daqiqa");
+        return true;
+    }
+    return false;
+}
+
+function showBlocked(msg) {
+    document.getElementById("homePage").innerHTML = `
+        <div style="text-align:center;color:#fff">
+            <div style="font-size:72px;margin-bottom:16px">🔒</div>
+            <h2 style="font-size:22px;margin-bottom:10px">${msg}</h2>
+            <p style="opacity:.7;font-size:13px">Qurilma ID: ${getDeviceId()}</p>
+        </div>`;
+}
+
+function registerFail() {
+    loginAttempts++;
+    localStorage.setItem("loginAttempts", loginAttempts);
+    if (loginAttempts === 2) {
+        blockedUntil = Date.now() + 30 * 60000;
+        localStorage.setItem("blockedUntil", blockedUntil);
+        showAlert("⚠️ 2 marta xato! 30 daqiqa blok.");
+    } else if (loginAttempts === 3) {
+        blockedUntil = Date.now() + 60 * 60000;
+        localStorage.setItem("blockedUntil", blockedUntil);
+        showAlert("⚠️ 3 marta xato! 1 soat blok.");
+    } else if (loginAttempts >= 4) {
+        const perma = JSON.parse(localStorage.getItem("blockedPerma") || "[]");
+        const devId = getDeviceId();
+        if (!perma.includes(devId)) { perma.push(devId); localStorage.setItem("blockedPerma", JSON.stringify(perma)); }
+        showBlocked("DOIMIY BLOKLANGAN");
+    } else {
+        showAlert("❌ Parol noto'g'ri! (" + loginAttempts + "/4)");
+    }
+}
+
+function registerSuccess() {
+    loginAttempts = 0;
+    localStorage.setItem("loginAttempts", "0");
+    localStorage.removeItem("blockedUntil");
+    blockedUntil = 0;
+}
+
+/* ═══════════════════ NAVIGATSIYA ═══════════════════ */
+let curFilialId = null, curGroupId = null;
+let editFilialId = null, editGroupId = null, editStudentId = null;
+let payStudentId = null, payGroupId = null, teacherGroupId = null;
+let pendingFilialId = null;
+
+// Cache
+let filialCache = [];
+let groupCache  = [];
+let studentCache = [];
+
+function go(pageId) {
+    document.querySelectorAll(".page, #homePage").forEach(p => p.style.display = "none");
+    document.getElementById(pageId).style.display = "block";
+}
+
+async function openSystem() {
+    if (checkBlock()) return;
+    const pass = await askPass("🔐 Tizimga kirish paroli");
+    if (pass === null) return;
+    registerSuccess();
+    go("panelPage");
+    await renderFilials();
+}
+
+/* ═══════════════════ OVERLAY ═══════════════════ */
+function openOverlay(id)  { document.getElementById(id).classList.add("on"); }
+function closeOverlay(id) { document.getElementById(id).classList.remove("on"); }
+function ferr(id, show)   { document.getElementById(id).style.display = show ? "block" : "none"; }
+function clearFerr()      { document.querySelectorAll(".ferr").forEach(e => e.style.display = "none"); }
+
+/* ═══════════════════ FILIALLAR ═══════════════════ */
+async function loadFilials() {
+    const { data, error } = await sb.from("filiallar").select("*").order("id");
+    if (error) { console.error(error); return []; }
+    return data || [];
+}
+
+async function renderFilials() {
+    showLoader("Filiallar yuklanmoqda...");
+    const filials = await loadFilials();
+    filialCache = filials;
+
+    // Load all groups and students for stats
+    const { data: groups } = await sb.from("guruhlar").select("*, talabalar(*)");
+    const allGroups   = groups || [];
+    const allStudents = allGroups.flatMap(g => g.talabalar || []);
+
+    const totalStudents = allStudents.length;
+    const totalGroups   = allGroups.length;
+    const totalPaid     = allStudents.reduce((a, s) => a + (s.tolangan || 0), 0);
+    const totalDebt     = allStudents.reduce((a, s) => a + (s.qoldiq  || 0), 0);
+
+    document.getElementById("filialStats").innerHTML = `
+        <div class="stat-card"><div class="stat-num">${filials.length}</div><div class="stat-lbl">Filiallar</div></div>
+        <div class="stat-card"><div class="stat-num">${totalGroups}</div><div class="stat-lbl">Guruhlar</div></div>
+        <div class="stat-card"><div class="stat-num">${totalStudents}</div><div class="stat-lbl">Talabalar</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--green)">${totalPaid.toLocaleString()}</div><div class="stat-lbl">To'langan (so'm)</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--red)">${totalDebt.toLocaleString()}</div><div class="stat-lbl">Qoldiq qarzdorlik</div></div>`;
+
+    const box = document.getElementById("filialsBox");
+    if (!filials.length) {
+        box.innerHTML = '<div class="empty-msg"><span class="empty-icon">🏢</span>Hali filial qo\'shilmagan</div>';
+        hideLoader(); return;
+    }
+
+    box.innerHTML = filials.map(f => {
+        const fGroups   = allGroups.filter(g => g.filial_id === f.id);
+        const fStudents = fGroups.flatMap(g => g.talabalar || []);
+        const debt      = fStudents.reduce((a, s) => a + (s.qoldiq || 0), 0);
+        return `
+        <div class="card">
+            <h3>${f.nomi}</h3>
+            <small>${fGroups.length} ta guruh · ${fStudents.length} ta talaba · Qarz: ${debt.toLocaleString()} so'm</small>
+            <div class="card-actions">
+                <button class="btn btn-blue btn-sm"  onclick="tryOpenFilial(${f.id})">📂 Kirish</button>
+                <button class="btn btn-gray btn-sm"  onclick="editFilial(${f.id})">✏️ Tahrir</button>
+                <button class="btn btn-red  btn-sm"  onclick="deleteFilial(${f.id})">🗑 O'chir</button>
+            </div>
+        </div>`;
+    }).join("");
+    hideLoader();
+}
+
+async function addFilial() {
+    const pass = await askPass("🔐 Admin paroli");
+    if (!pass) return;
+    editFilialId = null;
+    document.getElementById("filialModalTitle").textContent = "🏢 Filial Qo'shish";
+    document.getElementById("inp_fname").value    = "";
+    document.getElementById("inp_fpassnew").value = "";
+    clearFerr();
+    openOverlay("filialModal");
+}
+
+async function editFilial(id) {
+    const pass = await askPass("🔐 Admin paroli");
+    if (!pass) return;
+    const f = filialCache.find(f => f.id === id);
+    editFilialId = id;
+    document.getElementById("filialModalTitle").textContent = "✏️ Filialni Tahrirlash";
+    document.getElementById("inp_fname").value    = f.nomi;
+    document.getElementById("inp_fpassnew").value = f.paroli;
+    clearFerr();
+    openOverlay("filialModal");
+}
+
+async function saveFilial() {
+    const nomi  = document.getElementById("inp_fname").value.trim();
+    const paroli = document.getElementById("inp_fpassnew").value.trim();
+    let ok = true;
+    if (!nomi)  { ferr("err_fname", true);    ok = false; }
+    if (!paroli) { ferr("err_fpassnew", true); ok = false; }
+    if (!ok) return;
+
+    showLoader("Saqlanmoqda...");
+    if (editFilialId) {
+        await sb.from("filiallar").update({ nomi, paroli }).eq("id", editFilialId);
+    } else {
+        await sb.from("filiallar").insert({ nomi, paroli });
+    }
+    closeOverlay("filialModal");
+    await renderFilials();
+}
+
+async function deleteFilial(id) {
+    const pass = await askPass("🔐 Admin paroli");
+    if (!pass) return;
+    if (!await showConfirm("Filialni o'chirishni tasdiqlaysizmi?\n⚠️ Barcha ma'lumotlar o'chadi!")) return;
+    showLoader("O'chirilmoqda...");
+    await sb.from("filiallar").delete().eq("id", id);
+    await renderFilials();
+}
+
+/* Filial kirish paroli */
+function tryOpenFilial(id) {
+    pendingFilialId = id;
+    const f = filialCache.find(f => f.id === id);
+    document.getElementById("filialAuthTitle").textContent = "🔐 " + f.nomi + " — Kirish";
+    document.getElementById("inp_fpass").value = "";
+    ferr("err_fpass", false);
+    openOverlay("filialAuthOverlay");
+}
+
+async function confirmFilialAuth() {
+    const f = filialCache.find(f => f.id === pendingFilialId);
+    if (document.getElementById("inp_fpass").value !== f.paroli) {
+        ferr("err_fpass", true); return;
+    }
+    closeOverlay("filialAuthOverlay");
+    curFilialId = pendingFilialId;
+    document.getElementById("groupPageTitle").textContent = "🏢 " + f.nomi + " — Guruhlar";
+    go("groupPage");
+    await renderGroups();
+}
+
+/* Parollar sahifasi */
+async function openPasswordsPage() {
+    const pass = await askPass("🔐 Parollar sahifasi paroli");
+    if (!pass) return;
+    showLoader("Yuklanmoqda...");
+    const filials = await loadFilials();
+    filialCache = filials;
+
+    let html = "";
+    if (!filials.length) {
+        html = `<p class="empty-msg"><span class="empty-icon">🔑</span>Hali filial mavjud emas</p>`;
+    } else {
+        html = `<table class="pass-table">
+            <thead><tr><th>#</th><th>Filial nomi</th><th>Paroli</th><th>Amal</th></tr></thead><tbody>`;
+        filials.forEach((f, i) => {
+            html += `<tr>
+                <td>${i+1}</td><td>${f.nomi}</td>
+                <td><b style="font-size:15px;color:#1a56db">${f.paroli}</b></td>
+                <td><button class="btn btn-gray btn-sm" onclick="editFilial(${f.id})">✏️ Tahrir</button></td>
+            </tr>`;
+        });
+        html += `</tbody></table>`;
+    }
+
+    const permaList = JSON.parse(localStorage.getItem("blockedPerma") || "[]");
+    html += permaList.length
+        ? `<h3 style="margin:28px 0 12px;color:var(--red)">🔒 Doimiy Bloklangan Qurilmalar</h3>
+           <table class="pass-table"><thead><tr><th>#</th><th>Qurilma ID</th><th>Amal</th></tr></thead><tbody>
+           ${permaList.map((id, i) => `<tr><td>${i+1}</td><td style="font-size:11px">${id}</td>
+           <td><button class="btn btn-green btn-sm" onclick="unblockDevice('${id}')">🔓 Ochish</button></td></tr>`).join("")}
+           </tbody></table>`
+        : `<p style="margin-top:24px;color:var(--gray);font-size:13px">✅ Bloklangan qurilma yo'q</p>`;
+
+    document.getElementById("passTableWrap").innerHTML = html;
+    hideLoader();
+    go("passwordsPage");
+}
+
+/* ═══════════════════ GURUHLAR ═══════════════════ */
+async function loadGroups() {
+    const { data } = await sb.from("guruhlar").select("*").eq("filial_id", curFilialId).order("id");
+    return data || [];
+}
+
+function addGroup() {
+    editGroupId = null;
+    document.getElementById("groupModalTitle").textContent = "👥 Guruh Qo'shish";
+    document.getElementById("inp_gnum").value = "";
+    ferr("err_gnum", false);
+    openOverlay("groupModal");
+}
+
+async function editGroup(id) {
+    const g = groupCache.find(g => g.id === id);
+    editGroupId = id;
+    document.getElementById("groupModalTitle").textContent = "✏️ Guruhni Tahrirlash";
+    document.getElementById("inp_gnum").value = g.nomi.replace("-guruh", "");
+    ferr("err_gnum", false);
+    openOverlay("groupModal");
+}
+
+async function saveGroup() {
+    const num = document.getElementById("inp_gnum").value.trim();
+    if (!num || isNaN(Number(num)) || Number(num) < 1) { ferr("err_gnum", true); return; }
+    const nomi = Number(num) + "-guruh";
+    showLoader("Saqlanmoqda...");
+    if (editGroupId) {
+        await sb.from("guruhlar").update({ nomi }).eq("id", editGroupId);
+    } else {
+        await sb.from("guruhlar").insert({ filial_id: curFilialId, nomi, oqituvchi: "" });
+    }
+    closeOverlay("groupModal");
+    await renderGroups();
+}
+
+async function deleteGroup(id) {
+    if (!await showConfirm("Guruhni o'chirishni tasdiqlaysizmi?\n⚠️ Barcha talabalar o'chadi!")) return;
+    showLoader("O'chirilmoqda...");
+    await sb.from("guruhlar").delete().eq("id", id);
+    await renderGroups();
+}
+
+async function renderGroups() {
+    showLoader("Guruhlar yuklanmoqda...");
+    const { data: groups } = await sb.from("guruhlar")
+        .select("*, talabalar(*)")
+        .eq("filial_id", curFilialId)
+        .order("id");
+    groupCache = groups || [];
+
+    const box = document.getElementById("groupsBox");
+    if (!groupCache.length) {
+        box.innerHTML = '<div class="empty-msg"><span class="empty-icon">👥</span>Hali guruh qo\'shilmagan</div>';
+        hideLoader(); return;
+    }
+
+    box.innerHTML = groupCache.map(g => {
+        const students = g.talabalar || [];
+        const cnt     = students.length;
+        const full    = cnt >= 24;
+        const hasDebt = students.some(s => s.qoldiq > 0);
+        const allPaid = cnt > 0 && students.every(s => s.umumiy_tolov > 0 && s.qoldiq <= 0);
+        const cardCls = cnt === 0 ? "" : (allPaid ? "card-green" : (hasDebt ? "card-red" : ""));
+        const statusTxt = cnt === 0 ? "" : (allPaid ? " ✅ Yaxshi" : (hasDebt ? " 🔴 Qarz bor" : ""));
+        return `
+        <div class="card ${cardCls}">
+            <h3>${g.nomi}${full ? " ✅" : ""}${statusTxt ? `<small>${statusTxt}</small>` : ""}</h3>
+            <small>${cnt}/24 talaba${g.oqituvchi ? " · 👨‍🏫 " + g.oqituvchi : ""}</small>
+            <div class="card-actions">
+                <button class="btn btn-blue btn-sm"  onclick="openGroupStudents(${g.id})">📂 Ochish</button>
+                <button class="btn btn-gray btn-sm"  onclick="editGroup(${g.id})">✏️ Tahrir</button>
+                <button class="btn btn-red  btn-sm"  onclick="deleteGroup(${g.id})">🗑 O'chir</button>
+            </div>
+        </div>`;
+    }).join("");
+    hideLoader();
+}
+
+async function openGroupStudents(gid) {
+    curGroupId = gid;
+    const f = filialCache.find(f => f.id === curFilialId);
+    const g = groupCache.find(g => g.id === gid);
+    document.getElementById("studentPageTitle").textContent = (f?.nomi || "") + " — " + g.nomi;
+    go("studentPage");
+    await renderGroupTables(gid);
+}
+
+/* ═══════════════════ TALABALAR ═══════════════════ */
+async function loadStudents(gid) {
+    const { data } = await sb.from("talabalar").select("*").eq("guruh_id", gid).order("id");
+    return data || [];
+}
+
+async function openAddStudent(gid) {
+    const students = await loadStudents(gid);
+    if (students.length >= 24) { await showAlert("⚠️ Guruhda 24 ta talaba to'lgan!"); return; }
+    curGroupId    = gid;
+    editStudentId = null;
+    const g = groupCache.find(g => g.id === gid);
+    document.getElementById("studentModalTitle").textContent = "🎓 Talaba Qo'shish — " + (g?.nomi || "");
+    ["fio","year","day","district","mahalla","street","fee","first_pay"].forEach(k =>
+        document.getElementById("inp_" + k).value = "");
+    document.getElementById("inp_month").value  = "";
+    document.getElementById("inp_region").value = "";
+    clearFerr();
+    openOverlay("studentModal");
+}
+
+async function openEditStudent(sid, gid) {
+    curGroupId    = gid;
+    editStudentId = sid;
+    const { data: s } = await sb.from("talabalar").select("*").eq("id", sid).single();
+    document.getElementById("studentModalTitle").textContent = "✏️ Talabani Tahrirlash";
+    document.getElementById("inp_fio").value       = s.fio;
+    document.getElementById("inp_year").value      = s.tugilgan_yil  || "";
+    document.getElementById("inp_day").value       = s.tugilgan_kun  || "";
+    document.getElementById("inp_month").value     = s.oy            || "";
+    document.getElementById("inp_region").value    = s.viloyat       || "";
+    document.getElementById("inp_district").value  = s.tuman         || "";
+    document.getElementById("inp_mahalla").value   = s.mahalla       || "";
+    document.getElementById("inp_street").value    = s.kocha         || "";
+    document.getElementById("inp_fee").value       = s.umumiy_tolov  || "";
+    document.getElementById("inp_first_pay").value = s.tolov1        || "";
+    clearFerr();
+    openOverlay("studentModal");
+}
+
+async function deleteStudent(sid, gid) {
+    if (!await showConfirm("Rostdan ham ushbu talabani o'chirmoqchimisiz?")) return;
+    showLoader("O'chirilmoqda...");
+    await sb.from("talabalar").delete().eq("id", sid);
+    await renderGroupTables(gid);
+}
+
+const titleCase = str => str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
+async function saveStudent() {
+    clearFerr();
+    let fio      = document.getElementById("inp_fio").value.trim();
+    const year   = document.getElementById("inp_year").value.trim();
+    const day    = document.getElementById("inp_day").value.trim();
+    const month  = document.getElementById("inp_month").value;
+    const region = document.getElementById("inp_region").value;
+    let district = document.getElementById("inp_district").value.trim();
+    let mahalla  = document.getElementById("inp_mahalla").value.trim();
+    let street   = document.getElementById("inp_street").value.trim();
+    const fee      = +document.getElementById("inp_fee").value.trim();
+    const firstPay = +document.getElementById("inp_first_pay").value.trim();
+
+    fio = titleCase(fio); district = titleCase(district);
+    mahalla = titleCase(mahalla); street = titleCase(street);
+
+    let ok = true;
+    const onlyLetters = /^[\u0400-\u04FFa-zA-Z'\s]+$/u;
+    const currentYear = new Date().getFullYear();
+    const y = parseInt(year), d = parseInt(day);
+
+    if (!fio || !onlyLetters.test(fio))                         { ferr("err_fio", true);       ok = false; }
+    if (!year || isNaN(y) || y < 1945 || y > currentYear - 17) { ferr("err_year", true);      ok = false; }
+    if (!day  || isNaN(d) || d < 1   || d > 31)                { ferr("err_day", true);       ok = false; }
+    if (!month)                                                  { ferr("err_month", true);     ok = false; }
+    if (!region)                                                 { ferr("err_region", true);    ok = false; }
+    if (!district)                                               { ferr("err_district", true);  ok = false; }
+    if (!mahalla)                                                { ferr("err_mahalla", true);   ok = false; }
+    if (!street)                                                 { ferr("err_street", true);    ok = false; }
+    if (!fee || isNaN(fee) || fee <= 0)                         { ferr("err_fee", true);       ok = false; }
+    if (isNaN(firstPay) || firstPay < fee * 0.4 || firstPay > fee) { ferr("err_first_pay", true); ok = false; }
+    if (!ok) return;
+
+    const manzil = `${region}, ${district}, ${mahalla}, ${street}`;
+    const tolangan = firstPay;
+    const qoldiq   = Math.max(0, fee - firstPay);
+    const holat    = qoldiq <= 0 ? "To'landi" : "Qarzdor";
+
+    showLoader("Saqlanmoqda...");
+
+    if (editStudentId) {
+        const { data: old } = await sb.from("talabalar").select("*").eq("id", editStudentId).single();
+        const newTolangan = old.tolov1 + old.tolov2 + old.tolov3 + old.tolov4 + old.tolov5;
+        const newQoldiq   = Math.max(0, fee - newTolangan);
+        await sb.from("talabalar").update({
+            fio, tugilgan_yil: y, tugilgan_kun: d, oy: month,
+            viloyat: region, tuman: district, mahalla, kocha: street, manzil,
+            umumiy_tolov: fee,
+            tolangan: newTolangan, qoldiq: newQoldiq,
+            holat: newQoldiq <= 0 ? "To'landi" : "Qarzdor"
+        }).eq("id", editStudentId);
+    } else {
+        const { data: inserted } = await sb.from("talabalar").insert({
+            guruh_id: curGroupId, fio, tugilgan_yil: y, tugilgan_kun: d,
+            oy: month, viloyat: region, tuman: district, mahalla, kocha: street, manzil,
+            umumiy_tolov: fee, tolov1: firstPay,
+            tolangan, qoldiq, holat
+        }).select().single();
+
+        // Check if group is now full -> ask for teacher
+        const students = await loadStudents(curGroupId);
+        if (students.length === 24) {
+            const g = groupCache.find(g => g.id === curGroupId);
+            if (!g?.oqituvchi) {
+                closeOverlay("studentModal");
+                hideLoader();
+                teacherGroupId = curGroupId;
+                document.getElementById("inp_teacher").value = "";
+                ferr("err_teacher", false);
+                openOverlay("teacherModal");
+                await renderGroupTables(curGroupId);
+                return;
+            }
+        }
+    }
+
+    closeOverlay("studentModal");
+    await renderGroupTables(curGroupId);
+}
+
+async function saveTeacher() {
+    let name = document.getElementById("inp_teacher").value.trim();
+    name = titleCase(name);
+    const onlyLetters = /^[\u0400-\u04FFa-zA-Z'\s]+$/u;
+    if (!name || !onlyLetters.test(name)) { ferr("err_teacher", true); return; }
+    showLoader("Saqlanmoqda...");
+    await sb.from("guruhlar").update({ oqituvchi: name }).eq("id", teacherGroupId);
+    closeOverlay("teacherModal");
+    await renderGroupTables(curGroupId);
+    await renderGroups();
+}
+
+/* ═══════════════════ TO'LOV ═══════════════════ */
+let payStudentData = null;
+
+async function openPay(sid, gid) {
+    payStudentId = sid;
+    payGroupId   = gid;
+    const { data: s } = await sb.from("talabalar").select("*").eq("id", sid).single();
+    payStudentData = s;
+
+    document.getElementById("payModalTitle").textContent = "💳 " + s.fio + " — To'lov";
+    const amountInput = document.getElementById("pay_amount");
+    const stepSelect  = document.getElementById("pay_step");
+    amountInput.value = "";
+    stepSelect.disabled = false;
+
+    let foundFirst = false;
+    for (let i = 1; i <= 5; i++) {
+        const opt = stepSelect.querySelector(`option[value="${i}"]`);
+        if (s["tolov" + i] > 0 && i < 5) {
+            opt.disabled = true;
+        } else {
+            opt.disabled = false;
+            if (!foundFirst) { stepSelect.value = i; foundFirst = true; }
+        }
+    }
+
+    const allPaid5 = s.tolov1 > 0 && s.tolov2 > 0 && s.tolov3 > 0 && s.tolov4 > 0 && s.tolov5 > 0;
+    if (allPaid5 && s.qoldiq > 0) {
+        stepSelect.querySelector('option[value="5"]').disabled = false;
+        stepSelect.value = "5";
+    }
+
+    if (s.qoldiq <= 0) {
+        amountInput.disabled    = true;
+        amountInput.placeholder = "✅ To'liq to'langan";
+        stepSelect.disabled     = true;
+    } else {
+        amountInput.disabled    = false;
+        amountInput.placeholder = "Maks: " + s.qoldiq.toLocaleString() + " so'm";
+    }
+
+    ferr("err_pay", false);
+    openOverlay("payModal");
+}
+
+async function savePayment() {
+    const amount = +document.getElementById("pay_amount").value;
+    const step   = document.getElementById("pay_step").value;
+    if (!amount || amount <= 0) { ferr("err_pay", true); return; }
+
+    const s = payStudentData;
+    const curPay    = s["tolov" + step];
+    const otherPaid = s.tolangan - curPay;
+
+    if (otherPaid + amount > s.umumiy_tolov) {
+        await showAlert("⚠️ To'lov miqdori qoldiqdan oshib ketadi!\nQolgan summa: " +
+            (s.umumiy_tolov - otherPaid).toLocaleString() + " so'm");
+        return;
+    }
+
+    const updateField = "tolov" + step;
+    let newVal = step === "5" ? s.tolov5 + amount : amount;
+
+    showLoader("To'lov saqlanmoqda...");
+    const { data: updated } = await sb.from("talabalar")
+        .update({ [updateField]: newVal })
+        .eq("id", payStudentId)
+        .select().single();
+
+    const tolangan = updated.tolov1 + updated.tolov2 + updated.tolov3 + updated.tolov4 + updated.tolov5;
+    const qoldiq   = Math.max(0, updated.umumiy_tolov - tolangan);
+    await sb.from("talabalar").update({
+        tolangan, qoldiq, holat: qoldiq <= 0 ? "To'landi" : "Qarzdor"
+    }).eq("id", payStudentId);
+
+    closeOverlay("payModal");
+    await renderGroupTables(payGroupId);
+}
+
+/* ═══════════════════ JADVAL RENDER ═══════════════════ */
+function rowClass(s) {
+    if (!s.umumiy_tolov) return "";
+    const p = s.tolangan / s.umumiy_tolov;
+    if (p >= 1)  return "row-paid";
+    if (p < 0.5) return "row-debt";
+    return "";
+}
+
+async function renderGroupTables(gid) {
+    showLoader("Talabalar yuklanmoqda...");
+    const g = groupCache.find(g => g.id === gid) || {};
+    const students = await loadStudents(gid);
+
+    // refresh group cache oqituvchi
+    const { data: freshG } = await sb.from("guruhlar").select("*").eq("id", gid).single();
+    if (freshG) Object.assign(g, freshG);
+
+    const box = document.getElementById("groupTablesBox");
+    const full   = students.length >= 24;
+    const addBtn = full
+        ? `<span style="background:rgba(255,255,255,.2);color:#fff;padding:7px 14px;border-radius:7px;font-size:13px">✅ Guruh to'lgan (24/24)</span>`
+        : `<button class="btn btn-green" onclick="openAddStudent(${gid})">+ Talaba qo'shish</button>`;
+
+    let html = `
+    <div class="group-block">
+        <div class="group-block-header">
+            <div>
+                <h3>${g.nomi} — ${students.length}/24 talaba ${full ? "✅" : ""}</h3>
+                <div class="teacher-label">${g.oqituvchi ? "👨‍🏫 O'qituvchi: " + g.oqituvchi : "⚠️ O'qituvchi belgilanmagan"}</div>
+            </div>
+            <div class="hdr-btns">${addBtn}</div>
+        </div>`;
+
+    if (!students.length) {
+        html += `
+        <div class="empty-msg">
+            <span class="empty-icon">👥</span>
+            <p style="margin-bottom:16px">Hali talaba qo'shilmagan</p>
+            <button class="btn btn-green" onclick="openAddStudent(${gid})">+ Talaba qo'shish</button>
+        </div>`;
+    } else {
+        html += `
+        <div class="table-wrap"><table>
+            <thead><tr>
+                <th>#</th><th>F.I.O</th><th>Yil</th><th>Kun</th><th>Oy</th><th>Manzil</th>
+                <th>1-to'lov</th><th>2-to'lov</th><th>3-to'lov</th><th>4-to'lov</th><th>5-to'lov</th>
+                <th>Umumiy</th><th>To'langan</th><th>Qoldiq</th><th>Holat</th><th>Amallar</th>
+            </tr></thead><tbody>`;
+
+        students.forEach((s, i) => {
+            const pct = s.umumiy_tolov > 0 ? (s.tolangan / s.umumiy_tolov * 100).toFixed(0) : 0;
+            const badge = s.qoldiq === 0 && s.umumiy_tolov > 0
+                ? `<span class="badge-ok">✅ To'landi</span>`
+                : pct < 50
+                    ? `<span class="badge-debt">⚠️ Qarzdor (${pct}%)</span>`
+                    : `<span class="badge-warn">🕐 To'lanmoqda (${pct}%)</span>`;
+            const payLbl = s.qoldiq === 0 && s.umumiy_tolov > 0 ? "Qayta" : "To'lov";
+
+            html += `
+            <tr class="${rowClass(s)}">
+                <td>${i+1}</td>
+                <td class="td-left">${s.fio}</td>
+                <td>${s.tugilgan_yil || "—"}</td>
+                <td>${s.tugilgan_kun || "—"}</td>
+                <td>${s.oy || "—"}</td>
+                <td class="td-left" style="max-width:160px;white-space:normal;font-size:12px">${s.manzil || "—"}</td>
+                <td>${(s.tolov1 || 0).toLocaleString()}</td>
+                <td>${(s.tolov2 || 0).toLocaleString()}</td>
+                <td>${(s.tolov3 || 0).toLocaleString()}</td>
+                <td>${(s.tolov4 || 0).toLocaleString()}</td>
+                <td>${(s.tolov5 || 0).toLocaleString()}</td>
+                <td><b>${(s.umumiy_tolov || 0).toLocaleString()}</b></td>
+                <td style="color:var(--green)"><b>${(s.tolangan || 0).toLocaleString()}</b></td>
+                <td style="color:var(--red)"><b>${(s.qoldiq || 0).toLocaleString()}</b></td>
+                <td>${badge}</td>
+                <td>
+                    <button class="btn btn-green btn-sm" onclick="openPay(${s.id},${gid})">${payLbl}</button>
+                    <button class="btn btn-blue  btn-sm" onclick="openEditStudent(${s.id},${gid})">✏️</button>
+                    <button class="btn btn-red   btn-sm" onclick="deleteStudent(${s.id},${gid})">🗑</button>
+                </td>
+            </tr>`;
+        });
+        html += `</tbody></table></div>`;
+    }
+    html += `</div>`;
+    box.innerHTML = html;
+    hideLoader();
+}
+
+/* ═══════════════════ BLOKLANGAN QURILMALAR ═══════════════════ */
+async function unblockDevice(id) {
+    const pass = await askPass("🔐 Admin paroli");
+    if (!pass) return;
+    let perma = JSON.parse(localStorage.getItem("blockedPerma") || "[]");
+    perma = perma.filter(d => d !== id);
+    localStorage.setItem("blockedPerma", JSON.stringify(perma));
+    await showAlert("✅ Qurilma blokdan chiqarildi!");
+    openPasswordsPage();
+}
+
+async function openBlockedPage() {
+    const pass = await askPass("🔐 Parol");
+    if (!pass) return;
+    const permaList   = JSON.parse(localStorage.getItem("blockedPerma") || "[]");
+    const tempBlocked = parseInt(localStorage.getItem("blockedUntil") || "0");
+    const tempId      = localStorage.getItem("deviceId") || "";
+
+    let html = `
+    <div id="blockedModalOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#fff;border-radius:16px;padding:28px;width:540px;max-width:95%;max-height:82vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.3)">
+        <h3 style="color:var(--red);margin-bottom:18px;font-size:18px">🔒 Bloklangan Qurilmalar</h3>
+        <h4 style="color:var(--orange);margin-bottom:10px">⏳ Vaqtinchalik Bloklanganlar</h4>`;
+
+    if (tempBlocked > Date.now()) {
+        const min = Math.ceil((tempBlocked - Date.now()) / 60000);
+        html += `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px">
+        <thead><tr style="background:#fffbeb"><th style="padding:9px 12px;text-align:left">#</th>
+        <th style="padding:9px 12px;text-align:left">Qurilma ID</th>
+        <th style="padding:9px 12px;text-align:left">Qolgan vaqt</th>
+        <th style="padding:9px 12px">Amal</th></tr></thead><tbody>
+        <tr><td style="padding:9px 12px">1</td><td style="padding:9px 12px;font-size:11px">${tempId}</td>
+        <td style="padding:9px 12px;color:var(--orange)"><b>${min} daqiqa</b></td>
+        <td style="padding:9px 12px;text-align:center">
+        <button onclick="unblockTempFromModal()" style="background:var(--green);color:#fff;border:none;padding:6px 14px;border-radius:7px;cursor:pointer;font-size:12px">🔓 Ochish</button>
+        </td></tr></tbody></table>`;
+    } else {
+        html += `<p style="color:var(--gray);margin-bottom:16px;font-size:13px">✅ Vaqtinchalik bloklangan qurilma yo'q</p>`;
+    }
+
+    html += `<h4 style="color:var(--red);margin-bottom:10px">🔒 Doimiy Bloklanganlar</h4>`;
+    if (!permaList.length) {
+        html += `<p style="color:var(--gray);font-size:13px">✅ Doimiy bloklangan qurilma yo'q</p>`;
+    } else {
+        html += `<table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:#fef2f2"><th style="padding:9px 12px;text-align:left">#</th>
+        <th style="padding:9px 12px;text-align:left">Qurilma ID</th><th style="padding:9px 12px">Amal</th></tr></thead><tbody>
+        ${permaList.map((id, i) => `<tr><td style="padding:9px 12px">${i+1}</td>
+        <td style="padding:9px 12px;font-size:11px">${id}</td>
+        <td style="padding:9px 12px;text-align:center">
+        <button onclick="unblockPermaFromModal('${id}')" style="background:var(--green);color:#fff;border:none;padding:6px 14px;border-radius:7px;cursor:pointer;font-size:12px">🔓 Ochish</button>
+        </td></tr>`).join("")}
+        </tbody></table>`;
+    }
+
+    html += `<div style="text-align:right;margin-top:20px">
+        <button onclick="document.getElementById('blockedModalOverlay').remove()"
+            style="background:var(--gray);color:#fff;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-size:13px">
+            ✖ Yopish</button></div></div></div>`;
+
+    const modal = document.createElement("div");
+    modal.innerHTML = html;
+    document.body.appendChild(modal);
+}
+
+async function unblockTempFromModal() {
+    const pass = await askPass("🔐 Blokdan chiqarish paroli");
+    if (!pass) return;
+    localStorage.removeItem("blockedUntil");
+    localStorage.setItem("loginAttempts", "0");
+    blockedUntil = 0; loginAttempts = 0;
+    await showAlert("✅ Vaqtinchalik blok ochildi!");
+    document.getElementById("blockedModalOverlay").remove();
+    openBlockedPage();
+}
+
+async function unblockPermaFromModal(id) {
+    const pass = await askPass("🔐 Blokdan chiqarish paroli");
+    if (!pass) return;
+    let perma = JSON.parse(localStorage.getItem("blockedPerma") || "[]");
+    perma = perma.filter(d => d !== id);
+    localStorage.setItem("blockedPerma", JSON.stringify(perma));
+    localStorage.setItem("loginAttempts", "0");
+    localStorage.removeItem("blockedUntil");
+    await showAlert("✅ Qurilma blokdan chiqarildi!");
+    document.getElementById("blockedModalOverlay").remove();
+    openBlockedPage();
+}
+</script>
+</body>
+</html>
