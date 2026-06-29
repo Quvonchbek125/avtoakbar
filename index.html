@@ -147,6 +147,7 @@ tr:hover td{background:#f7fafc}
     <h1>🚗 AvtoAkbar</h1>
     <div style="display:flex;align-items:center;gap:12px">
       <span id="headerBranch" style="font-size:13px;opacity:.8"></span>
+      <button id="adminParolBtn" onclick="openAdminParollar()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;display:none">🔑 Parollar</button>
       <button id="logoutBtn" onclick="doLogout()">Chiqish</button>
     </div>
   </header>
@@ -354,6 +355,33 @@ tr:hover td{background:#f7fafc}
   </div>
 </div>
 
+<!-- PAROLLAR MODAL -->
+<div class="modal-overlay" id="parollarModal">
+  <div class="modal" style="max-width:400px">
+    <h3>🔑 Filial parollari</h3>
+    <div id="parollarContent"></div>
+    <div class="modal-footer">
+      <button class="btn" style="background:#eee" onclick="closeModal('parollarModal')">Yopish</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAROLLAR KIRISH MODAL -->
+<div class="modal-overlay" id="parollarPassModal">
+  <div class="modal" style="max-width:340px">
+    <h3>🔐 Admin paroli</h3>
+    <div class="form-group">
+      <label>Parol kiriting</label>
+      <input type="password" id="parollarPassInput" placeholder="Admin paroli..." autocomplete="new-password" />
+    </div>
+    <div class="login-error" id="parollarPassError"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="confirmParollarPass()">Kirish</button>
+      <button class="btn" style="background:#eee" onclick="closeModal('parollarPassModal')">Bekor</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // SUPABASE
@@ -482,6 +510,7 @@ function loginSuccess(user) {
   document.getElementById('app').classList.remove('hidden');
   if (user.type === 'admin') {
     document.getElementById('headerBranch').textContent = '👑 Admin';
+    document.getElementById('adminParolBtn').style.display = '';
   } else {
     document.getElementById('headerBranch').textContent = '🏢 ' + user.nomi;
     document.querySelector('[data-page="filiallar"]').style.display = 'none';
@@ -504,6 +533,7 @@ function doLogout() {
     document.getElementById('loginError').textContent = '';
     document.getElementById('loginScreen').style.display = '';
     document.getElementById('app').classList.add('hidden');
+    document.getElementById('adminParolBtn').style.display = 'none';
     checkBlockStatus();
   });
 }
@@ -622,7 +652,39 @@ function loadFiliallar() {
 }
 
 var editingFilialId = null;
-function openAddFilial(){
+
+// ============================================================
+// ADMIN PAROLLAR KO'RISH
+// ============================================================
+function openAdminParollar() {
+  document.getElementById('parollarPassInput').value='';
+  document.getElementById('parollarPassError').textContent='';
+  document.getElementById('parollarPassModal').classList.add('open');
+  setTimeout(function(){ document.getElementById('parollarPassInput').focus(); },100);
+}
+function confirmParollarPass() {
+  var val = document.getElementById('parollarPassInput').value;
+  if(val === ADMIN_PASS) {
+    document.getElementById('parollarPassModal').classList.remove('open');
+    showParollar();
+  } else {
+    document.getElementById('parollarPassError').textContent = "Parol noto'g'ri!";
+  }
+}
+function showParollar() {
+  var html = '<table style="width:100%;border-collapse:collapse">' +
+    '<thead><tr><th style="padding:8px;background:#f7fafc;border-bottom:2px solid #e2e8f0;text-align:left">Filial</th>' +
+    '<th style="padding:8px;background:#f7fafc;border-bottom:2px solid #e2e8f0;text-align:left">Parol</th></tr></thead><tbody>';
+  allFiliallar.forEach(function(f){
+    html += '<tr><td style="padding:10px 8px;border-bottom:1px solid #f0f4f8"><strong>'+esc(f.nomi)+'</strong></td>'+
+      '<td style="padding:10px 8px;border-bottom:1px solid #f0f4f8;font-family:monospace;color:#2d6a9f">'+esc(f.paroli)+'</td></tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('parollarContent').innerHTML = html;
+  document.getElementById('parollarModal').classList.add('open');
+}
+
+
   if(currentUser.type!=='admin'){showAlert("Faqat admin!");return;}
   editingFilialId=null;
   document.getElementById('filialModalTitle').textContent="Filial qo'shish";
@@ -1178,4 +1240,3 @@ document.querySelectorAll('.modal-overlay').forEach(function(el){
 </script>
 </body>
 </html>
-
