@@ -188,7 +188,7 @@ tr:hover td{background:#f7fafc}
         </div>
       </div>
       <table>
-        <thead><tr><th>#</th><th>Guruh nomi</th><th>Filial</th><th>O'qituvchi</th><th>Talabalar</th><th>Amallar</th></tr></thead>
+        <thead><tr><th>#</th><th>Guruh nomi</th><th>Filial</th><th>O'qituvchi</th><th>Talabalar</th><th>Qarzdorlik</th><th>Amallar</th></tr></thead>
         <tbody id="guruhlarTable"><tr><td colspan="6" style="text-align:center;color:#aaa;padding:30px">Yuklanmoqda...</td></tr></tbody>
       </table>
     </div>
@@ -847,25 +847,41 @@ function loadGuruhlar(){
   if(filterFilial) query=query.eq('filial_id',filterFilial);
   if(currentUser&&currentUser.type==='filial') query=sb.from('guruhlar').select('*').order('id').eq('filial_id',currentUser.id);
   query.then(function(res){
-    hideLoader();
-    if(res.error){showAlert("Xato: "+res.error.message);return;}
+    if(res.error){hideLoader();showAlert("Xato: "+res.error.message);return;}
     allGuruhlar = res.data||[];
-    renderGuruhlar();
+    // Talabalarni ham yuklaymiz qarzdorlik uchun
+    sb.from('talabalar').select('guruh_id,holat,qoldiq').then(function(tres){
+      hideLoader();
+      allTalabalar = tres.data||[];
+      renderGuruhlar();
+    });
   });
 }
 
 function renderGuruhlar(){
   var tbody=document.getElementById('guruhlarTable');
   if(!allGuruhlar.length){
-    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#aaa;padding:30px">Guruhlar yo\'q</td></tr>'; return;
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">Guruhlar yo\'q</td></tr>'; return;
   }
   tbody.innerHTML=allGuruhlar.map(function(g,i){
     var f=allFiliallar.find(function(x){return x.id===g.filial_id;});
-    var tSon=allTalabalar.filter(function(t){return t.guruh_id===g.id;}).length;
+    var gTalabalar=allTalabalar.filter(function(t){return t.guruh_id===g.id;});
+    var tSon=gTalabalar.length;
+    var qarzdorSon=gTalabalar.filter(function(t){return t.holat==='Qarzdor'||t.holat==='Qisman';}).length;
+    var qoldiqJami=gTalabalar.reduce(function(s,t){return s+(t.qoldiq||0);},0);
+    var qarzdorHtml='';
+    if(qarzdorSon>0){
+      qarzdorHtml='<span class="badge badge-danger">⚠️ '+qarzdorSon+' ta qarzdor</span>';
+    } else if(tSon>0){
+      qarzdorHtml='<span class="badge badge-success">✅ Hammasi to\'lagan</span>';
+    } else {
+      qarzdorHtml='<span style="color:#aaa;font-size:12px">—</span>';
+    }
     return '<tr><td>'+(i+1)+'</td><td><strong>'+esc(g.nomi)+'</strong></td>'+
-      '<td>'+( f?esc(f.nomi):'—')+'</td>'+
+      '<td>'+(f?esc(f.nomi):'—')+'</td>'+
       '<td>'+esc(g.oqituvchi||'—')+'</td>'+
       '<td>'+tSon+' ta</td>'+
+      '<td>'+qarzdorHtml+'</td>'+
       '<td><div class="btn-group">'+
       '<button class="btn btn-info btn-sm" onclick="filterByGuruh('+g.id+')">👁️ Talabalar</button>'+
       '<button class="btn btn-warning btn-sm" onclick="openGuruhWithPass('+g.id+')">✏️</button>'+
