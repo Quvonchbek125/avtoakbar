@@ -179,7 +179,8 @@ tr:hover td{background:#f7fafc}
     <div class="card">
       <div class="card-header">
         <h2>👥 Guruhlar</h2>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" onclick="showPage('filiallar',document.querySelector('[data-page=\'filiallar\']'))">⬅️ Orqaga</button>
           <select id="guruhFilialFilter" class="search-bar" onchange="loadGuruhlar()">
             <option value="">Barcha filiallar</option>
           </select>
@@ -400,67 +401,97 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================================
-// BLOK TIZIMI (localStorage)
+// BLOK TIZIMI (Supabase)
 // ============================================================
 var ADMIN_PASS = "QuVoNcHbEk125.,':@#";
 var UNBLOCK_PASS = "quvonch125";
-var MAX_ATTEMPTS = [0, 0, 30, 60, -1]; // 1,2=yo'q cheklov, 3=30min, 4=1soat, 5=-1=doimiy
 
-function getBlockData() {
-  try { return JSON.parse(localStorage.getItem('blockData') || '{"attempts":0,"until":0,"permanent":false}'); }
-  catch(e) { return {attempts:0,until:0,permanent:false}; }
+// Qurilma ID — brauzer fingerprint o'rniga oddiy localStorage ID
+function getQurilmaId() {
+  var id = localStorage.getItem('qurilma_id');
+  if(!id) {
+    id = 'q_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
+    localStorage.setItem('qurilma_id', id);
+  }
+  return id;
 }
-function saveBlockData(d) { localStorage.setItem('blockData', JSON.stringify(d)); }
-function clearBlockData() { localStorage.removeItem('blockData'); }
+
+var QURILMA_ID = null;
+var blockDataCache = null;
 
 function checkBlockStatus() {
-  var d = getBlockData();
-  var now = Date.now();
-  if (d.permanent) {
-    document.getElementById('loginPass').disabled = true;
-    document.getElementById('loginError').textContent = "⛔ Kirish doimiy bloklangan!";
-    document.getElementById('blockInfo').textContent = "Admin bilan bog'laning";
-    return false;
-  }
-  if (d.until && now < d.until) {
-    var min = Math.ceil((d.until - now) / 60000);
-    document.getElementById('loginPass').disabled = true;
-    document.getElementById('loginError').textContent = "⏱️ " + min + " daqiqa blok!";
-    document.getElementById('blockInfo').textContent = "Xato soni: " + d.attempts;
-    setTimeout(checkBlockStatus, 30000);
-    return false;
-  }
-  if (d.until && now >= d.until && !d.permanent) {
-    d.until = 0;
-    saveBlockData(d);
+  if(!sb) { setTimeout(checkBlockStatus, 500); return; }
+  QURILMA_ID = getQurilmaId();
+  sb.from('bloklanganlar').select('*').eq('qurilma_id', QURILMA_ID).single().then(function(res) {
+    if(res.error || !res.data) {
+      // Blok yo'q
+      document.getElementById('loginPass').disabled = false;
+      document.getElementById('loginError').textContent = '';
+      return;
+    }
+    var d = res.data;
+    blockDataCache = d;
+    var now = new Date();
+
+    if(d.doimiy_blok) {
+      document.getElementById('loginPass').disabled = true;
+      document.getElementById('loginError').textContent = "⛔ Kirish doimiy bloklangan!";
+      document.getElementById('blockInfo').textContent = "Admin bilan bog'laning";
+      return;
+    }
+    if(d.vaqtinchalik_blok && new Date(d.vaqtinchalik_blok) > now) {
+      var min = Math.ceil((new Date(d.vaqtinchalik_blok) - now) / 60000);
+      document.getElementById('loginPass').disabled = true;
+      document.getElementById('loginError').textContent = "⏱️ " + min + " daqiqa blok!";
+      document.getElementById('blockInfo').textContent = "Xato soni: " + d.urinishlar;
+      setTimeout(checkBlockStatus, 30000);
+      return;
+    }
+    // Blok muddati o'tgan
     document.getElementById('loginPass').disabled = false;
-    document.getElementById('loginError').textContent = "";
-  }
-  return true;
+    document.getElementById('loginError').textContent = '';
+    document.getElementById('blockInfo').textContent = '';
+  });
 }
 
 function registerFailedAttempt() {
-  var d = getBlockData();
-  d.attempts = (d.attempts || 0) + 1;
-  var now = Date.now();
-  if (d.attempts === 3) {
-    d.until = now + 30 * 60000;
-    document.getElementById('loginError').textContent = "❌ 30 daqiqa bloklandi!";
-    document.getElementById('loginPass').disabled = true;
-    setTimeout(checkBlockStatus, 30000);
-  } else if (d.attempts === 4) {
-    d.until = now + 60 * 60000;
-    document.getElementById('loginError').textContent = "❌ 1 soat bloklandi!";
-    document.getElementById('loginPass').disabled = true;
-    setTimeout(checkBlockStatus, 60000);
-  } else if (d.attempts >= 5) {
-    d.permanent = true;
-    document.getElementById('loginPass').disabled = true;
-    document.getElementById('loginError').textContent = "⛔ Doimiy bloklandi!";
-  } else {
-    document.getElementById('loginError').textContent = "❌ Parol noto'g'ri! (" + d.attempts + "-urinish)";
-  }
-  saveBlockData(d);
+  if(!QURILMA_ID) QURILMA_ID = getQurilmaId();
+  sb.from('bloklanganlar').select('*').eq('qurilma_id', QURILMA_ID).single().then(function(res) {
+    var urinishlar = 1;
+    var exists = false;
+    if(res.data) { urinishlar = (res.data.urinishlar||0) + 1; exists = true; }
+
+    var now = new Date();
+    var data = { qurilma_id: QURILMA_ID, urinishlar: urinishlar, doimiy_blok: false, vaqtinchalik_blok: null };
+
+    if(urinishlar === 3) {
+      data.vaqtinchalik_blok = new Date(now.getTime() + 30*60000).toISOString();
+      document.getElementById('loginError').textContent = "❌ 30 daqiqa bloklandi!";
+      document.getElementById('loginPass').disabled = true;
+      setTimeout(checkBlockStatus, 30000);
+    } else if(urinishlar === 4) {
+      data.vaqtinchalik_blok = new Date(now.getTime() + 60*60000).toISOString();
+      document.getElementById('loginError').textContent = "❌ 1 soat bloklandi!";
+      document.getElementById('loginPass').disabled = true;
+      setTimeout(checkBlockStatus, 60000);
+    } else if(urinishlar >= 5) {
+      data.doimiy_blok = true;
+      document.getElementById('loginError').textContent = "⛔ Doimiy bloklandi!";
+      document.getElementById('loginPass').disabled = true;
+    } else {
+      document.getElementById('loginError').textContent = "❌ Parol noto'g'ri! (" + urinishlar + "-urinish)";
+    }
+
+    var prom = exists
+      ? sb.from('bloklanganlar').update(data).eq('qurilma_id', QURILMA_ID)
+      : sb.from('bloklanganlar').insert(data);
+    prom.then(function(){});
+  });
+}
+
+function clearBlockData() {
+  if(!QURILMA_ID) return;
+  sb.from('bloklanganlar').delete().eq('qurilma_id', QURILMA_ID).then(function(){});
 }
 
 // ============================================================
@@ -470,9 +501,9 @@ var loggedIn = false;
 var currentUser = null;
 
 function doLogin() {
-  if (!checkBlockStatus()) return;
   var pass = document.getElementById('loginPass').value;
   if (!pass) return;
+  if (document.getElementById('loginPass').disabled) return;
 
   // Admin kirish
   if (pass === ADMIN_PASS) {
@@ -483,7 +514,7 @@ function doLogin() {
 
   // Blokdan chiqarish paroli
   if (pass === UNBLOCK_PASS) {
-    showAlert("Bu parol faqat blokdan chiqarish uchun!\nBloklanganlar ro'yxatiga kiring.");
+    showAlert("Bu parol faqat blokdan chiqarish uchun!\nAdmin panelida Bloklanganlar ro'yxatiga kiring.");
     return;
   }
 
@@ -760,46 +791,47 @@ function openGuruhWithPass(guruhId) {
 function ochishFilial(id) {
   var f = allFiliallar.find(function(x){return x.id===id;});
   if(!f) return;
-  // Admin paroli so'rash
-  var overlay = document.getElementById('filialPassModal');
-  document.getElementById('filialPassHint').textContent = '"'+f.nomi+'" filialini ochish uchun admin paroli:';
+  document.getElementById('filialPassHint').textContent = '"'+f.nomi+'" filiali paroli:';
   document.getElementById('filialPassInput').value='';
   document.getElementById('filialPassError').textContent='';
+  var overlay = document.getElementById('filialPassModal');
+  overlay._adminCheck = false;
+  overlay._filialId = id;
   filialPassCb = function(){
-    // Guruhlar sahifasiga o'tib, shu filial bo'yicha filter
     showPage('guruhlar', document.querySelector('[data-page="guruhlar"]'));
     document.getElementById('guruhFilialFilter').value = id;
     loadGuruhlar();
   };
-  // filialPassCb ni admin paroli bilan ishlatish uchun maxsus flag
-  overlay._adminCheck = true;
-  overlay._filialId = id;
   overlay.classList.add('open');
+  setTimeout(function(){ document.getElementById('filialPassInput').focus(); },100);
 }
 
 function checkFilialPassOrAdmin(){
   var overlay = document.getElementById('filialPassModal');
   var val = document.getElementById('filialPassInput').value.trim();
+  var fId = overlay._filialId;
 
-  // Admin paroli bilan ochish
-  if(overlay._adminCheck){
-    if(val === ADMIN_PASS){
-      overlay._adminCheck = false;
+  // Agar filialId berilgan bo'lsa (ochish uchun) — filial paroli bilan tekshir
+  if(fId){
+    var f = allFiliallar.find(function(x){return x.id===fId;});
+    if(!f){ overlay.classList.remove('open'); return; }
+    if(val===f.paroli){
+      overlay._filialId = null;
       overlay.classList.remove('open');
       if(filialPassCb) filialPassCb();
-      filialPassCb = null;
+      filialPassCb=null;
     } else {
-      document.getElementById('filialPassError').textContent = "Admin paroli noto'g'ri!";
+      document.getElementById('filialPassError').textContent="Parol noto'g'ri!";
     }
     return;
   }
 
-  // Filial paroli bilan ochish
+  // Guruh uchun filial paroli tekshirish
   var g = allGuruhlar.find(function(x){return x.id===filialPassTargetId;});
   if(!g){overlay.classList.remove('open');return;}
-  var f = allFiliallar.find(function(x){return x.id===g.filial_id;});
-  if(!f){overlay.classList.remove('open');return;}
-  if(val===f.paroli){
+  var ff = allFiliallar.find(function(x){return x.id===g.filial_id;});
+  if(!ff){overlay.classList.remove('open');return;}
+  if(val===ff.paroli){
     overlay.classList.remove('open');
     if(filialPassCb) filialPassCb();
     filialPassCb=null;
@@ -1145,43 +1177,72 @@ function saveTolov(){
 // BLOKLANGANLAR
 // ============================================================
 function loadBloklanganlar(){
-  var d=getBlockData();
-  var tbody=document.getElementById('bloklanganlarTable');
-  var now=Date.now();
-  if(!d||(!d.attempts&&!d.permanent)){
-    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#aaa;padding:30px">Bloklangan foydalanuvchi yo\'q ✅</td></tr>';
-    return;
-  }
-  var turi=d.permanent?"⛔ Doimiy":(d.until&&now<d.until?"⏱️ Vaqtinchalik":"✅ Aktiv");
-  var vaqt=d.permanent?"Cheksiz":(d.until&&now<d.until?new Date(d.until).toLocaleString('uz'):"—");
-  tbody.innerHTML='<tr class="blocked-row">'+
-    '<td>1</td>'+
-    '<td>Bu qurilma (brauzer)</td>'+
-    '<td><strong>'+d.attempts+'</strong></td>'+
-    '<td><span class="badge '+(d.permanent?'badge-blocked':'badge-warning')+'">'+turi+'</span></td>'+
-    '<td>'+vaqt+'</td>'+
-    '<td><div class="btn-group">'+
-    '<button class="btn btn-success btn-sm" onclick="unblockUser()">🔓 Vaqtinchalik blokdan chiqar</button>'+
-    '<button class="btn btn-danger btn-sm" onclick="unblockPermanent()">⛔ Doimiy blokdan chiqar</button>'+
-    '</div></td></tr>';
-}
-
-function unblockUser(){
-  if(currentUser.type!=='admin'){showAlert("Faqat admin!");return;}
-  showConfirm("Vaqtinchalik blokdan chiqarasizmi?",function(){
-    var d=getBlockData();
-    d.until=0;
-    saveBlockData(d);
-    showAlert("✅ Vaqtinchalik blok olib tashlandi!");
-    loadBloklanganlar();
+  showLoader();
+  sb.from('bloklanganlar').select('*').order('id').then(function(res){
+    hideLoader();
+    var tbody = document.getElementById('bloklanganlarTable');
+    if(res.error){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#e53e3e;padding:30px">Xato: '+res.error.message+'</td></tr>'; return; }
+    var data = res.data||[];
+    if(!data.length){
+      tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#aaa;padding:30px">Bloklangan foydalanuvchi yo\'q ✅</td></tr>'; return;
+    }
+    var now = new Date();
+    tbody.innerHTML = data.map(function(d,i){
+      var turi, badge;
+      if(d.doimiy_blok){
+        turi='⛔ Doimiy'; badge='badge-blocked';
+      } else if(d.vaqtinchalik_blok && new Date(d.vaqtinchalik_blok)>now){
+        var min=Math.ceil((new Date(d.vaqtinchalik_blok)-now)/60000);
+        turi='⏱️ '+min+' daqiqa'; badge='badge-warning';
+      } else {
+        turi='✅ Faol'; badge='badge-success';
+      }
+      var vaqt = d.doimiy_blok ? 'Cheksiz' : (d.vaqtinchalik_blok ? new Date(d.vaqtinchalik_blok).toLocaleString('uz') : '—');
+      return '<tr><td>'+(i+1)+'</td>'+
+        '<td style="font-size:11px;color:#666">'+esc(d.qurilma_id)+'</td>'+
+        '<td><strong>'+d.urinishlar+'</strong></td>'+
+        '<td><span class="badge '+badge+'">'+turi+'</span></td>'+
+        '<td>'+vaqt+'</td>'+
+        '<td><div class="btn-group">'+
+        '<button class="btn btn-warning btn-sm" onclick="unblockVaqtinchalik('+d.id+')">⏱️ Vaqtinchalikni chiqar</button>'+
+        '<button class="btn btn-danger btn-sm" onclick="unblockDoimiy('+d.id+')">⛔ Doimiyni chiqar</button>'+
+        '<button class="btn btn-success btn-sm" onclick="unblockHammasi('+d.id+')">✅ Butunlay chiqar</button>'+
+        '</div></td></tr>';
+    }).join('');
   });
 }
-function unblockPermanent(){
-  if(currentUser.type!=='admin'){showAlert("Faqat admin!");return;}
-  showConfirm("Doimiy blokdan ham chiqarasizmi? Xato soni nolga tushuriladi.",function(){
-    clearBlockData();
-    showAlert("✅ Doimiy blok olib tashlandi! Endi kirish mumkin.");
-    loadBloklanganlar();
+
+function unblockVaqtinchalik(id){
+  showConfirm("Vaqtinchalik blokdan chiqarasizmi?", function(){
+    showLoader();
+    sb.from('bloklanganlar').update({vaqtinchalik_blok:null}).eq('id',id).then(function(res){
+      hideLoader();
+      if(res.error){showAlert("Xato: "+res.error.message);return;}
+      showAlert("✅ Vaqtinchalik blok olib tashlandi!");
+      loadBloklanganlar();
+    });
+  });
+}
+function unblockDoimiy(id){
+  showConfirm("Doimiy blokdan chiqarasizmi?", function(){
+    showLoader();
+    sb.from('bloklanganlar').update({doimiy_blok:false}).eq('id',id).then(function(res){
+      hideLoader();
+      if(res.error){showAlert("Xato: "+res.error.message);return;}
+      showAlert("✅ Doimiy blok olib tashlandi!");
+      loadBloklanganlar();
+    });
+  });
+}
+function unblockHammasi(id){
+  showConfirm("Bu qurilmani butunlay blokdan chiqarasizmi?", function(){
+    showLoader();
+    sb.from('bloklanganlar').delete().eq('id',id).then(function(res){
+      hideLoader();
+      if(res.error){showAlert("Xato: "+res.error.message);return;}
+      showAlert("✅ Qurilma blokdan chiqarildi!");
+      loadBloklanganlar();
+    });
   });
 }
 
