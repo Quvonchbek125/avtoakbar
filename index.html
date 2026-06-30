@@ -106,6 +106,15 @@ tr:hover td{background:#f7fafc}
   </div>
 </div>
 
+<!-- YEAR SELECT -->
+<div id="yearScreen" style="position:fixed;inset:0;background:linear-gradient(135deg,#1a3a5c,#2d6a9f);display:none;align-items:center;justify-content:center;z-index:9999">
+  <div class="login-box" style="width:420px">
+    <h1>📅 Yilni tanlang</h1>
+    <p>Qaysi yil ma'lumotlarini ko'rmoqchisiz?</p>
+    <div id="yearButtons" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:10px"></div>
+  </div>
+</div>
+
 <!-- LOADER -->
 <div id="loader"><div class="loader-spin"></div></div>
 
@@ -622,7 +631,38 @@ function doLogin() {
   });
 }
 
+var selectedYear = 'all';
+
 function loginSuccess(user) {
+  if (user.type === 'filial') {
+    document.getElementById('loginScreen').style.display = 'none';
+    showYearPicker(user);
+    return;
+  }
+  finalizeLogin(user);
+}
+
+function showYearPicker(user) {
+  var box = document.getElementById('yearButtons');
+  var curYear = new Date().getFullYear();
+  var html = '';
+  for (var y = 2026; y <= 2035; y++) {
+    html += '<button style="width:auto;flex:1 1 100px" onclick="pickYear(' + y + ')">' + y + '-yil</button>';
+  }
+  html += '<button style="width:auto;flex:1 1 100%;background:#805ad5" onclick="pickYear(\'all\')">Barcha yillar</button>';
+  box.innerHTML = html;
+  document.getElementById('yearScreen').style.display = 'flex';
+  window._pendingUser = user;
+}
+
+function pickYear(y) {
+  selectedYear = y;
+  document.getElementById('yearScreen').style.display = 'none';
+  finalizeLogin(window._pendingUser);
+  window._pendingUser = null;
+}
+
+function finalizeLogin(user) {
   loggedIn = true;
   currentUser = user;
   document.getElementById('loginScreen').style.display = 'none';
@@ -631,7 +671,7 @@ function loginSuccess(user) {
     document.getElementById('headerBranch').textContent = '👑 Admin';
     document.getElementById('adminParolBtn').style.display = '';
   } else {
-    document.getElementById('headerBranch').textContent = '🏢 ' + user.nomi;
+    document.getElementById('headerBranch').textContent = '🏢 ' + user.nomi + ' (' + (selectedYear==='all'?'Barcha yillar':selectedYear+'-yil') + ')';
     document.querySelector('[data-page="filiallar"]').style.display = 'none';
     document.querySelector('[data-page="bloklanganlar"]').style.display = 'none';
   }
@@ -651,10 +691,11 @@ document.addEventListener('keydown', function(e) {
 
 function doLogout() {
   showConfirm("Chiqmoqchimisiz?", function() {
-    loggedIn = false; currentUser = null;
+    loggedIn = false; currentUser = null; selectedYear = 'all';
     document.getElementById('loginPass').value = '';
     document.getElementById('loginError').textContent = '';
     document.getElementById('loginScreen').style.display = '';
+    document.getElementById('yearScreen').style.display = 'none';
     document.getElementById('app').classList.add('hidden');
     document.getElementById('adminParolBtn').style.display = 'none';
     checkBlockStatus();
@@ -1590,12 +1631,11 @@ function deleteEkspres(id){
 function populateHisobotYil(){
   var sel=document.getElementById('hisobotYil');
   if(sel.options.length) return;
-  var curYear=new Date().getFullYear();
   var html='';
   for(var y=2026; y<=2035; y++){
-    html+='<option value="'+y+'"'+(y===curYear?' selected':'')+'>'+y+'-yil</option>';
+    html+='<option value="'+y+'"'+(y===selectedYear?' selected':'')+'>'+y+'-yil</option>';
   }
-  html+='<option value="all">Barcha yillar</option>';
+  html+='<option value="all"'+(selectedYear==='all'?' selected':'')+'>Barcha yillar</option>';
   sel.innerHTML=html;
 }
 
