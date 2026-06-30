@@ -303,6 +303,13 @@ tr:hover td{background:#f7fafc}
         <tbody id="hisobotTable"></tbody>
       </table>
     </div>
+    <div class="card" id="ekspresReytingCard" style="display:none">
+      <div class="card-header"><h2>🚀 Ekspres reytingi</h2></div>
+      <table>
+        <thead><tr><th>O'rin</th><th>Filial</th><th>Ekspres soni</th><th>Umumiy summa</th><th>083 bor</th><th>083 yo'q</th></tr></thead>
+        <tbody id="ekspresReytingTable"></tbody>
+      </table>
+    </div>
   </div>
 
   <!-- EKSPRES MODAL -->
@@ -1661,6 +1668,31 @@ function loadHisobot(){
         '<td><div style="background:#e2e8f0;border-radius:10px;height:8px;width:80px;display:inline-block;vertical-align:middle">'+
         '<div style="background:#38a169;height:8px;border-radius:10px;width:'+r.pct+'%"></div></div> '+r.pct+'%</td></tr>';
     }).join('');
+
+    if(ek.length){
+      var ekRows=fl.map(function(f){
+        var fE=ek.filter(function(e){return String(e.filial_id)===String(f.id);});
+        var sum=fE.reduce(function(s,e){return s+(e.tolov_summa||0);},0);
+        var bor=fE.filter(function(e){return e.bor_083;}).length;
+        return {nomi:f.nomi, son:fE.length, sum:sum, bor:bor, yoq:fE.length-bor};
+      }).filter(function(r){return r.son>0;});
+      ekRows.sort(function(a,b){return b.sum-a.sum;});
+      if(ekRows.length){
+        document.getElementById('ekspresReytingCard').style.display='';
+        document.getElementById('ekspresReytingTable').innerHTML=ekRows.map(function(r,i){
+          var medal = i===0?'🥇':(i===1?'🥈':(i===2?'🥉':(i+1)+''));
+          return '<tr><td style="text-align:center;font-weight:700">'+medal+'</td><td><strong>'+esc(r.nomi)+'</strong></td>'+
+            '<td>'+r.son+' ta</td>'+
+            '<td>'+fmt(r.sum)+'</td>'+
+            '<td style="color:#276749"><strong>'+r.bor+' ta</strong></td>'+
+            '<td style="color:#c53030"><strong>'+r.yoq+' ta</strong></td></tr>';
+        }).join('');
+      } else {
+        document.getElementById('ekspresReytingCard').style.display='none';
+      }
+    } else {
+      document.getElementById('ekspresReytingCard').style.display='none';
+    }
   });
 }
 function sCard(l,v,c){return '<div class="stat-card" style="border-left-color:'+c+'"><h3>'+l+'</h3><div class="value" style="color:'+c+'">'+v+'</div></div>';}
