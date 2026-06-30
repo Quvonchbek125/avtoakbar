@@ -669,7 +669,11 @@ function showRetryError(tbodyId, colspan, retryFn){
 }
 
 function updateAllSelects() {
-  var filialOpts = '<option value="">Barcha filiallar</option>' + allFiliallar.map(function(f){
+  var isFilial = currentUser && currentUser.type==='filial';
+  var visibleFiliallar = isFilial ? allFiliallar.filter(function(f){return String(f.id)===String(currentUser.id);}) : allFiliallar;
+  var visibleGuruhlar = isFilial ? allGuruhlar.filter(function(g){return String(g.filial_id)===String(currentUser.id);}) : allGuruhlar;
+
+  var filialOpts = '<option value="">Barcha filiallar</option>' + visibleFiliallar.map(function(f){
     return '<option value="'+f.id+'">'+esc(f.nomi)+'</option>';
   }).join('');
   ['guruhFilialFilter','talFilialFilter','tolovFilialFilter'].forEach(function(id){
@@ -677,7 +681,7 @@ function updateAllSelects() {
     if(el){ var v=el.value; el.innerHTML=filialOpts; el.value=v; }
   });
 
-  var guruhOpts = '<option value="">Barcha guruhlar</option>' + allGuruhlar.map(function(g){
+  var guruhOpts = '<option value="">Barcha guruhlar</option>' + visibleGuruhlar.map(function(g){
     return '<option value="'+g.id+'">'+esc(g.nomi)+'</option>';
   }).join('');
   ['talGuruhFilter','tolovGuruhFilter'].forEach(function(id){
@@ -685,12 +689,12 @@ function updateAllSelects() {
     if(el){ var v=el.value; el.innerHTML=guruhOpts; el.value=v; }
   });
 
-  var filialSel = '<option value="">-- Tanlang --</option>' + allFiliallar.map(function(f){
+  var filialSel = '<option value="">-- Tanlang --</option>' + visibleFiliallar.map(function(f){
     return '<option value="'+f.id+'">'+esc(f.nomi)+'</option>';
   }).join('');
   document.getElementById('guruhFilialId').innerHTML = filialSel;
 
-  var guruhSel = '<option value="">-- Guruh tanlang --</option>' + allGuruhlar.map(function(g){
+  var guruhSel = '<option value="">-- Guruh tanlang --</option>' + visibleGuruhlar.map(function(g){
     return '<option value="'+g.id+'">'+esc(g.nomi)+'</option>';
   }).join('');
   document.getElementById('talabaGuruhId').innerHTML = guruhSel;
@@ -856,7 +860,7 @@ function openGuruhWithPass(guruhId) {
   }
 
   // Filial foydalanuvchisi o'z guruhini parolsiz ochaoladi
-  if(currentUser.type==='filial' && currentUser.id===g.filial_id){
+  if(currentUser.type==='filial' && String(currentUser.id)===String(g.filial_id)){
     openEditGuruh(guruhId); return;
   }
 
@@ -1050,7 +1054,7 @@ function loadTalabalar(){
     else { hideLoader(); document.getElementById('talabalarTable').innerHTML='<tr><td colspan="10" style="text-align:center;color:#aaa;padding:30px">Talabalar yo\'q</td></tr>'; return; }
   }
   if(currentUser&&currentUser.type==='filial'){
-    var myGIds=allGuruhlar.filter(function(g){return g.filial_id===currentUser.id;}).map(function(g){return g.id;});
+    var myGIds=allGuruhlar.filter(function(g){return String(g.filial_id)===String(currentUser.id);}).map(function(g){return g.id;});
     query=myGIds.length ? sb.from('talabalar').select('*').order('id').in('guruh_id',myGIds) : sb.from('talabalar').select('*').order('id').eq('guruh_id',-1);
   }
   query.then(function(res){
@@ -1215,7 +1219,7 @@ function loadTolovlar(){
   showLoader();
   var query=sb.from('talabalar').select('*').order('id');
   if(currentUser && currentUser.type==='filial'){
-    var myGIds=allGuruhlar.filter(function(g){return g.filial_id===currentUser.id;}).map(function(g){return g.id;});
+    var myGIds=allGuruhlar.filter(function(g){return String(g.filial_id)===String(currentUser.id);}).map(function(g){return g.id;});
     if(guruhFilter && myGIds.indexOf(parseInt(guruhFilter))!==-1) query=query.eq('guruh_id',guruhFilter);
     else if(myGIds.length) query=query.in('guruh_id',myGIds);
     else { hideLoader(); document.getElementById('tolovlarTable').innerHTML='<tr><td colspan="13" style="text-align:center;color:#aaa;padding:30px">Ma\'lumot yo\'q</td></tr>'; return; }
@@ -1424,9 +1428,9 @@ function loadHisobot(){
     if(r[0].error){showAlert("Xato!");return;}
     var fl=r[0].data||[], gl=r[1].data||[], tl=r[2].data||[];
     if(currentUser && currentUser.type==='filial'){
-      fl=fl.filter(function(f){return f.id===currentUser.id;});
-      var myGIds=gl.filter(function(g){return g.filial_id===currentUser.id;}).map(function(g){return g.id;});
-      gl=gl.filter(function(g){return g.filial_id===currentUser.id;});
+      fl=fl.filter(function(f){return String(f.id)===String(currentUser.id);});
+      var myGIds=gl.filter(function(g){return String(g.filial_id)===String(currentUser.id);}).map(function(g){return g.id;});
+      gl=gl.filter(function(g){return String(g.filial_id)===String(currentUser.id);});
       tl=tl.filter(function(t){return myGIds.indexOf(t.guruh_id)!==-1;});
     }
     var totT=tl.length;
