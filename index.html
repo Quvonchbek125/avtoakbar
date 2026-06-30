@@ -1050,10 +1050,13 @@ function loadGuruhlar(){
 
 function renderGuruhlar(){
   var tbody=document.getElementById('guruhlarTable');
-  if(!allGuruhlar.length){
+  var visibleGuruhlar=allGuruhlar.filter(function(g){
+    return allTalabalar.some(function(t){return t.guruh_id===g.id;});
+  });
+  if(!visibleGuruhlar.length){
     tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">Guruhlar yo\'q</td></tr>'; return;
   }
-  tbody.innerHTML=allGuruhlar.map(function(g,i){
+  tbody.innerHTML=visibleGuruhlar.map(function(g,i){
     var f=allFiliallar.find(function(x){return x.id===g.filial_id;});
     var gTalabalar=allTalabalar.filter(function(t){return t.guruh_id===g.id;});
     var tSon=gTalabalar.length;
