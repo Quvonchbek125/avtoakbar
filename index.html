@@ -87,6 +87,10 @@ tr:hover td{background:#f7fafc}
 .blocked-row td{background:#fff5f5!important;color:#c53030}
 @media(max-width:600px){.form-row{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}table{font-size:11px}td,th{padding:7px 8px}}
 </style>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2d6a9f">
 </head>
 <body>
 
@@ -644,12 +648,24 @@ function loadAll(callback) {
     sb.from('guruhlar').select('*').order('id')
   ]).then(function(r) {
     hideLoader();
-    if(r[0].error || r[1].error) { showAlert("Ma'lumot yuklashda xato!"); return; }
+    if(r[0].error || r[1].error) { showRetryError('filiallarTable', 5, function(){loadAll(callback);}); return; }
     allFiliallar = r[0].data || [];
     allGuruhlar = r[1].data || [];
     updateAllSelects();
     if(callback){ callback(); } else { loadFiliallar(); }
+  }).catch(function(){
+    hideLoader();
+    showRetryError('filiallarTable', 5, function(){loadAll(callback);});
   });
+}
+
+function showRetryError(tbodyId, colspan, retryFn){
+  var tbody = document.getElementById(tbodyId);
+  if(!tbody) return;
+  window.__retryFn = retryFn;
+  tbody.innerHTML = '<tr><td colspan="'+colspan+'" style="text-align:center;color:#e53e3e;padding:30px">'+
+    "Internet bilan bog'lanishda xato yuz berdi.<br>"+
+    '<button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="window.__retryFn && window.__retryFn()">🔄 Qayta urinish</button></td></tr>';
 }
 
 function updateAllSelects() {
@@ -695,7 +711,7 @@ function loadFiliallar() {
     sb.from('talabalar').select('id,guruh_id')
   ]).then(function(r) {
     hideLoader();
-    if(r[0].error){ showAlert("Xato: "+r[0].error.message); return; }
+    if(r[0].error){ showRetryError('filiallarTable', 5, loadFiliallar); return; }
     allFiliallar = r[0].data||[];
     allGuruhlar = r[1].data||[];
     updateAllSelects();
@@ -715,6 +731,9 @@ function loadFiliallar() {
         '<button class="btn btn-danger btn-sm" onclick="deleteFilial('+f.id+')">🗑️</button>'+
         '</div></td></tr>';
     }).join('');
+  }).catch(function(){
+    hideLoader();
+    showRetryError('filiallarTable', 5, loadFiliallar);
   });
 }
 
@@ -1044,7 +1063,15 @@ function loadTalabalar(){
   });
 }
 
+function sortByGuruh(data){
+  return data.slice().sort(function(a,b){
+    if(a.guruh_id!==b.guruh_id) return a.guruh_id-b.guruh_id;
+    return a.id-b.id;
+  });
+}
+
 function renderTalabalar(data){
+  data=sortByGuruh(data);
   var tbody=document.getElementById('talabalarTable');
   if(!data.length){tbody.innerHTML='<tr><td colspan="10" style="text-align:center;color:#aaa;padding:30px">Talabalar yo\'q</td></tr>';return;}
   tbody.innerHTML=data.map(function(t,i){
@@ -1208,6 +1235,7 @@ function loadTolovlar(){
 }
 
 function renderTolovlar(data){
+  data=sortByGuruh(data);
   var tbody=document.getElementById('tolovlarTable');
   if(!data.length){tbody.innerHTML='<tr><td colspan="13" style="text-align:center;color:#aaa;padding:30px">Ma\'lumot yo\'q</td></tr>';return;}
   tbody.innerHTML=data.map(function(t,i){
