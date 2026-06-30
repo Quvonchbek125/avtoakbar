@@ -423,8 +423,6 @@ window.addEventListener('DOMContentLoaded', function() {
 // ============================================================
 // BLOK TIZIMI (Supabase)
 // ============================================================
-var ADMIN_PASS = "QuVoNcHbEk125.,':@#";
-var UNBLOCK_PASS = "quvonch125";
 var AYOL_INSTR_NARX = 1000000;
 
 // Qurilma ID — brauzer fingerprint o'rniga oddiy localStorage ID
@@ -526,32 +524,40 @@ function doLogin() {
   if (!pass) return;
   if (document.getElementById('loginPass').disabled) return;
 
-  // Admin kirish
-  if (pass === ADMIN_PASS) {
-    clearBlockData();
-    loginSuccess({type:'admin'});
-    return;
-  }
-
-  // Blokdan chiqarish paroli
-  if (pass === UNBLOCK_PASS) {
-    showAlert("Bu parol faqat blokdan chiqarish uchun!\nAdmin panelida Bloklanganlar ro'yxatiga kiring.");
-    return;
-  }
-
-  // Filial paroli tekshirish
   showLoader();
-  sb.from('filiallar').select('*').then(function(res) {
-    hideLoader();
-    if (res.error) { showAlert("Server xato: " + res.error.message); return; }
-    var found = null;
-    (res.data||[]).forEach(function(f){ if(f.paroli === pass) found = f; });
-    if (found) {
+
+  // 1. Avval admin parolini RPC orqali tekshiramiz
+  sb.rpc('check_admin_login', { p_parol: pass }).then(function(adminRes) {
+    if (adminRes.error) { hideLoader(); showAlert("Server xato: " + adminRes.error.message); return; }
+
+    if (adminRes.data === true) {
+      hideLoader();
       clearBlockData();
-      loginSuccess({type:'filial', id:found.id, nomi:found.nomi});
-    } else {
-      registerFailedAttempt();
+      loginSuccess({type:'admin'});
+      return;
     }
+
+    // 2. Blokdan chiqarish paroli RPC orqali
+    sb.rpc('check_unblock_login', { p_parol: pass }).then(function(unblockRes) {
+      if (unblockRes.data === true) {
+        hideLoader();
+        showAlert("Bu parol faqat blokdan chiqarish uchun!\nAdmin panelida Bloklanganlar ro'yxatiga kiring.");
+        return;
+      }
+
+      // 3. Filial paroli RPC orqali (hash solishtiriladi, parol hech qachon ochiq qaytmaydi)
+      sb.rpc('check_filial_login', { p_paroli: pass }).then(function(filRes) {
+        hideLoader();
+        if (filRes.error) { showAlert("Server xato: " + filRes.error.message); return; }
+        var found = (filRes.data && filRes.data.length) ? filRes.data[0] : null;
+        if (found) {
+          clearBlockData();
+          loginSuccess({type:'filial', id:found.id, nomi:found.nomi});
+        } else {
+          registerFailedAttempt();
+        }
+      });
+    });
   });
 }
 
@@ -716,12 +722,17 @@ function openAdminParollar() {
 }
 function confirmParollarPass() {
   var val = document.getElementById('parollarPassInput').value;
-  if(val === ADMIN_PASS) {
-    document.getElementById('parollarPassModal').classList.remove('open');
-    showParollar();
-  } else {
-    document.getElementById('parollarPassError').textContent = "Parol noto'g'ri!";
-  }
+  showLoader();
+  sb.rpc('check_admin_login', { p_parol: val }).then(function(res) {
+    hideLoader();
+    if(res.error){ document.getElementById('parollarPassError').textContent = "Server xato!"; return; }
+    if(res.data === true) {
+      document.getElementById('parollarPassModal').classList.remove('open');
+      showParollar();
+    } else {
+      document.getElementById('parollarPassError').textContent = "Parol noto'g'ri!";
+    }
+  });
 }
 function showParollar() {
   var html = '<table style="width:100%;border-collapse:collapse">' +
@@ -832,33 +843,36 @@ function checkFilialPassOrAdmin(){
   var val = document.getElementById('filialPassInput').value.trim();
   var fId = overlay._filialId;
 
-  // Agar filialId berilgan bo'lsa (ochish uchun) — filial paroli bilan tekshir
-  if(fId){
-    var f = allFiliallar.find(function(x){return x.id===fId;});
-    if(!f){ overlay.classList.remove('open'); return; }
-    if(val===f.paroli){
-      overlay._filialId = null;
+  showLoader();
+  sb.rpc('check_filial_login', { p_paroli: val }).then(function(res){
+    hideLoader();
+    if(res.error){ document.getElementById('filialPassError').textContent="Server xato!"; return; }
+    var found = (res.data && res.data.length) ? res.data[0] : null;
+
+    // Agar filialId berilgan bo'lsa (ochish uchun) — aynan shu filialga mosligini tekshiramiz
+    if(fId){
+      if(found && found.id === fId){
+        overlay._filialId = null;
+        overlay.classList.remove('open');
+        if(filialPassCb) filialPassCb();
+        filialPassCb=null;
+      } else {
+        document.getElementById('filialPassError').textContent="Parol noto'g'ri!";
+      }
+      return;
+    }
+
+    // Guruh uchun — parol shu guruhning filialiga mosligini tekshiramiz
+    var g = allGuruhlar.find(function(x){return x.id===filialPassTargetId;});
+    if(!g){overlay.classList.remove('open');return;}
+    if(found && found.id === g.filial_id){
       overlay.classList.remove('open');
       if(filialPassCb) filialPassCb();
       filialPassCb=null;
     } else {
       document.getElementById('filialPassError').textContent="Parol noto'g'ri!";
     }
-    return;
-  }
-
-  // Guruh uchun filial paroli tekshirish
-  var g = allGuruhlar.find(function(x){return x.id===filialPassTargetId;});
-  if(!g){overlay.classList.remove('open');return;}
-  var ff = allFiliallar.find(function(x){return x.id===g.filial_id;});
-  if(!ff){overlay.classList.remove('open');return;}
-  if(val===ff.paroli){
-    overlay.classList.remove('open');
-    if(filialPassCb) filialPassCb();
-    filialPassCb=null;
-  } else {
-    document.getElementById('filialPassError').textContent="Parol noto'g'ri!";
-  }
+  });
 }
 
 function loadGuruhlar(){
@@ -1385,4 +1399,3 @@ document.querySelectorAll('.modal-overlay').forEach(function(el){
 </script>
 </body>
 </html>
-
