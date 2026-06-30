@@ -328,7 +328,12 @@ tr:hover td{background:#f7fafc}
       <div class="form-group"><label>Mahalla</label><input id="talabaMahalla" placeholder="Mahalla..." autocomplete="off" /></div>
     </div>
     <div class="form-group"><label>Ko'cha/Uy</label><input id="talabaKocha" placeholder="Ko'cha, uy raqami..." autocomplete="off" /></div>
-    <div class="form-group"><label>Umumiy to'lov (so'm)</label><input id="talabaUmumiy" type="number" placeholder="0" /></div>
+    <div class="form-group"><label>Umumiy to'lov (so'm)</label><input id="talabaUmumiy" type="number" placeholder="0" oninput="calcTalabaUmumiy()" /></div>
+    <div class="form-group" style="background:#fef9e7;border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="talabaAyolInstruktor" onchange="calcTalabaUmumiy()" style="width:18px;height:18px;cursor:pointer" />
+      <label for="talabaAyolInstruktor" style="margin:0;cursor:pointer;font-weight:600;color:#744210">👩‍🏫 Ayol instruktor (+1,000,000 so'm)</label>
+    </div>
+    <div id="talabaUmumiyJami" style="font-size:13px;color:#2d6a9f;font-weight:600;margin-top:-8px;margin-bottom:8px"></div>
     <div class="modal-footer">
       <button class="btn btn-success" onclick="saveTalaba()">Saqlash</button>
       <button class="btn" style="background:#eee" onclick="closeModal('talabaModal')">Bekor</button>
@@ -996,7 +1001,7 @@ function renderTalabalar(data){
     var g=allGuruhlar.find(function(x){return x.id===t.guruh_id;});
     var f=g?allFiliallar.find(function(x){return x.id===g.filial_id;}):null;
     var bc=t.holat==="To'lagan"?'badge-success':(t.holat==='Qisman'?'badge-warning':'badge-danger');
-    return '<tr><td>'+(i+1)+'</td><td><strong>'+esc(t.fio)+'</strong></td>'+
+    return '<tr><td>'+(i+1)+'</td><td><strong>'+esc(t.fio)+'</strong>'+(t.ayol_instruktor?' <span title="Ayol instruktor" style="font-size:12px">👩‍🏫</span>':'')+'</td>'+
       '<td>'+(f?esc(f.nomi):'—')+'</td>'+
       '<td>'+(g?esc(g.nomi):'—')+'</td>'+
       '<td>'+fmt(t.umumiy_tolov)+'</td>'+
@@ -1012,11 +1017,27 @@ function renderTalabalar(data){
 }
 
 var editingTalabaId=null;
+var AYOL_INSTR_NARX = 1000000;
+var talabaBaseUmumiy = 0;
+
+function calcTalabaUmumiy(){
+  var checked = document.getElementById('talabaAyolInstruktor').checked;
+  var info = document.getElementById('talabaUmumiyJami');
+  var base = parseInt(document.getElementById('talabaUmumiy').value)||0;
+  if(checked){
+    info.textContent = "Jami: " + (base + AYOL_INSTR_NARX).toLocaleString('uz-UZ') + " so'm (asosiy " + base.toLocaleString('uz-UZ') + " + ayol instruktor " + AYOL_INSTR_NARX.toLocaleString('uz-UZ') + ")";
+  } else {
+    info.textContent = "";
+  }
+}
+
 function openAddTalaba(){
   editingTalabaId=null;
   document.getElementById('talabaModalTitle').textContent="Talaba qo'shish";
   ['talabaFio','talabaTugilganYil','talabaTugilganKun','talabaViloyat','talabaTuman','talabaMahalla','talabaKocha','talabaUmumiy'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('talabaOy').value='';
+  document.getElementById('talabaAyolInstruktor').checked=false;
+  document.getElementById('talabaUmumiyJami').textContent='';
   document.getElementById('talabaModal').classList.add('open');
 }
 function openEditTalaba(id){
@@ -1036,14 +1057,21 @@ function openEditTalaba(id){
     document.getElementById('talabaTuman').value=t.tuman||'';
     document.getElementById('talabaMahalla').value=t.mahalla||'';
     document.getElementById('talabaKocha').value=t.kocha||'';
-    document.getElementById('talabaUmumiy').value=t.umumiy_tolov||0;
+    var ayolInstr = !!t.ayol_instruktor;
+    document.getElementById('talabaAyolInstruktor').checked = ayolInstr;
+    // Bazaviy summani ko'rsatamiz (ayol instruktor narxisiz)
+    var baseUm = (t.umumiy_tolov||0) - (ayolInstr ? AYOL_INSTR_NARX : 0);
+    document.getElementById('talabaUmumiy').value = baseUm;
+    calcTalabaUmumiy();
     document.getElementById('talabaModal').classList.add('open');
   });
 }
 function saveTalaba(){
   var guruh_id=parseInt(document.getElementById('talabaGuruhId').value);
   var fio=document.getElementById('talabaFio').value.trim();
-  var umumiy=parseInt(document.getElementById('talabaUmumiy').value)||0;
+  var baseUmumiy=parseInt(document.getElementById('talabaUmumiy').value)||0;
+  var ayolInstr=document.getElementById('talabaAyolInstruktor').checked;
+  var umumiy = baseUmumiy + (ayolInstr ? AYOL_INSTR_NARX : 0);
   if(!guruh_id||!fio){showAlert("Guruh va F.I.O to'ldiring!");return;}
   var data={guruh_id:guruh_id,fio:fio,
     tugilgan_yil:parseInt(document.getElementById('talabaTugilganYil').value)||null,
@@ -1053,13 +1081,22 @@ function saveTalaba(){
     tuman:document.getElementById('talabaTuman').value,
     mahalla:document.getElementById('talabaMahalla').value,
     kocha:document.getElementById('talabaKocha').value,
+    ayol_instruktor:ayolInstr,
     umumiy_tolov:umumiy};
   showLoader();
   if(editingTalabaId){
-    sb.from('talabalar').update(data).eq('id',editingTalabaId).then(function(res){
-      hideLoader();
-      if(res.error){showAlert("Xato: "+res.error.message);return;}
-      closeModal('talabaModal'); loadTalabalar();
+    // Tahrirlashda qoldiqni qayta hisoblash kerak (umumiy o'zgargan bo'lishi mumkin)
+    sb.from('talabalar').select('tolangan').eq('id',editingTalabaId).single().then(function(curRes){
+      var tolangan = (curRes.data && curRes.data.tolangan) || 0;
+      var qoldiq = Math.max(0, umumiy - tolangan);
+      var holat = qoldiq<=0 ? "To'lagan" : (tolangan>0 ? "Qisman" : "Qarzdor");
+      data.qoldiq = qoldiq;
+      data.holat = holat;
+      sb.from('talabalar').update(data).eq('id',editingTalabaId).then(function(res){
+        hideLoader();
+        if(res.error){showAlert("Xato: "+res.error.message);return;}
+        closeModal('talabaModal'); loadTalabalar();
+      });
     });
   } else {
     data.tolov1=0;data.tolov2=0;data.tolov3=0;data.tolov4=0;data.tolov5=0;
