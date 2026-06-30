@@ -161,6 +161,7 @@ tr:hover td{background:#f7fafc}
     <button class="nav-btn" data-page="talabalar" onclick="showPage('talabalar',this)">🎓 Talabalar</button>
     <button class="nav-btn" data-page="tolovlar" onclick="showPage('tolovlar',this)">💰 To'lovlar</button>
     <button class="nav-btn" data-page="bloklanganlar" onclick="showPage('bloklanganlar',this)">🚫 Bloklanganlar</button>
+    <button class="nav-btn" data-page="ekspres" onclick="showPage('ekspres',this)">🚀 Ekspres</button>
     <button class="nav-btn" data-page="hisobot" onclick="showPage('hisobot',this)">📊 Hisobot</button>
   </nav>
 
@@ -262,19 +263,67 @@ tr:hover td{background:#f7fafc}
     </div>
   </div>
 
+  <!-- EKSPRES -->
+  <div class="page" id="page-ekspres">
+    <div class="card">
+      <div class="card-header">
+        <h2>🚀 Ekspres</h2>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" onclick="showPage('filiallar',document.querySelector('[data-page=\'filiallar\']'))">⬅️ Orqaga</button>
+          <select id="ekspresFilialFilter" class="search-bar" onchange="loadEkspres()">
+            <option value="">Barcha filiallar</option>
+          </select>
+          <input class="search-bar" id="searchEkspres" placeholder="Ism qidirish..." oninput="loadEkspres()" style="width:180px" />
+          <button class="btn btn-success" onclick="openAddEkspres()">+ Ekspres qo'shish</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>#</th><th>F.I.O</th><th>Filial</th><th>To'lov summasi</th><th>083 bormi</th><th>Sana</th><th>Amallar</th></tr></thead>
+        <tbody id="ekspresTable"><tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">Yuklanmoqda...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- HISOBOT -->
   <div class="page" id="page-hisobot">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="showPage('filiallar',document.querySelector('[data-page=\'filiallar\']'))">⬅️ Orqaga</button>
-      <h2 style="font-size:18px;color:#1a3a5c">📊 Hisobot</h2>
+      <h2 style="font-size:18px;color:#1a3a5c;margin:0">📊 Hisobot</h2>
+      <select id="hisobotYil" class="search-bar" onchange="loadHisobot()" style="margin-left:auto"></select>
     </div>
     <div id="hisobotStats" class="stats-grid"></div>
+    <div id="ekspresHisobotCard" class="card" style="display:none">
+      <div class="card-header"><h2>🚀 Ekspres statistikasi</h2></div>
+      <div id="ekspresHisobotStats" class="stats-grid"></div>
+    </div>
     <div class="card">
-      <div class="card-header"><h2>📊 Filiallar statistikasi</h2></div>
+      <div class="card-header"><h2>🏆 Filiallar reytingi</h2></div>
       <table>
-        <thead><tr><th>Filial</th><th>Guruhlar</th><th>Talabalar</th><th>Umumiy to'lov</th><th>To'langan</th><th>Qoldiq</th><th>%</th></tr></thead>
+        <thead><tr><th>O'rin</th><th>Filial</th><th>Guruhlar</th><th>Talabalar</th><th>Umumiy to'lov</th><th>To'langan</th><th>Qoldiq</th><th>%</th></tr></thead>
         <tbody id="hisobotTable"></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- EKSPRES MODAL -->
+  <div class="modal-overlay" id="ekspresModal">
+    <div class="modal">
+      <h3 id="ekspresModalTitle">Ekspres qo'shish</h3>
+      <input type="hidden" id="ekspresId" />
+      <div class="form-group" id="ekspresFilialWrap">
+        <label>Filial</label>
+        <select id="ekspresFilialId"><option value="">-- Tanlang --</option></select>
+      </div>
+      <div class="form-group"><label>F.I.O</label><input id="ekspresFio" placeholder="Familiya Ism Otasining ismi" autocomplete="off" /></div>
+      <div class="form-group"><label>To'lov summasi</label><input type="number" id="ekspresTolov" placeholder="0" autocomplete="off" /></div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="ekspresBor083" style="width:auto" />
+        <label style="margin:0" for="ekspresBor083">083 bor</label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-success" onclick="saveEkspres()">Saqlash</button>
+        <button class="btn" style="background:#eee" onclick="closeModal('ekspresModal')">Bekor</button>
+      </div>
     </div>
   </div>
 </div>
@@ -631,6 +680,7 @@ function showPage(name, btn) {
   if(name==='talabalar') loadTalabalar();
   if(name==='tolovlar') loadTolovlar();
   if(name==='bloklanganlar') loadBloklanganlar();
+  if(name==='ekspres') loadEkspres();
   if(name==='hisobot') loadHisobot();
 }
 
@@ -676,7 +726,7 @@ function updateAllSelects() {
   var filialOpts = '<option value="">Barcha filiallar</option>' + visibleFiliallar.map(function(f){
     return '<option value="'+f.id+'">'+esc(f.nomi)+'</option>';
   }).join('');
-  ['guruhFilialFilter','talFilialFilter','tolovFilialFilter'].forEach(function(id){
+  ['guruhFilialFilter','talFilialFilter','tolovFilialFilter','ekspresFilialFilter'].forEach(function(id){
     var el = document.getElementById(id);
     if(el){ var v=el.value; el.innerHTML=filialOpts; el.value=v; }
   });
@@ -1415,23 +1465,156 @@ function unblockHammasi(id){
 }
 
 // ============================================================
+// EKSPRES
+// ============================================================
+var allEkspres = [];
+
+function loadEkspres(){
+  var filialFilter=document.getElementById('ekspresFilialFilter').value;
+  var search=(document.getElementById('searchEkspres').value||'').toLowerCase();
+  showLoader();
+  var query=sb.from('ekspres').select('*').order('id',{ascending:false});
+  if(currentUser && currentUser.type==='filial'){
+    query=sb.from('ekspres').select('*').order('id',{ascending:false}).eq('filial_id',currentUser.id);
+  } else if(filialFilter){
+    query=query.eq('filial_id',filialFilter);
+  }
+  query.then(function(res){
+    hideLoader();
+    if(res.error){ showRetryError('ekspresTable',7,loadEkspres); return; }
+    var data=res.data||[];
+    if(search) data=data.filter(function(e){return e.fio.toLowerCase().includes(search);});
+    allEkspres=data;
+    renderEkspres(data);
+  }).catch(function(){ hideLoader(); showRetryError('ekspresTable',7,loadEkspres); });
+}
+
+function renderEkspres(data){
+  var tbody=document.getElementById('ekspresTable');
+  if(!data.length){ tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">Ekspres yo\'q</td></tr>'; return; }
+  tbody.innerHTML=data.map(function(e,i){
+    var f=allFiliallar.find(function(x){return String(x.id)===String(e.filial_id);});
+    var sana=e.yaratilgan?new Date(e.yaratilgan).toLocaleDateString('uz-UZ'):'—';
+    return '<tr><td>'+(i+1)+'</td><td><strong>'+esc(e.fio)+'</strong></td>'+
+      '<td>'+(f?esc(f.nomi):'—')+'</td>'+
+      '<td>'+fmt(e.tolov_summa)+'</td>'+
+      '<td>'+(e.bor_083?'<span class="badge badge-success">✅ Bor</span>':'<span class="badge badge-danger">❌ Yo\'q</span>')+'</td>'+
+      '<td>'+sana+'</td>'+
+      '<td><div class="btn-group">'+
+      '<button class="btn btn-warning btn-sm" onclick="openEditEkspres('+e.id+')">✏️</button>'+
+      '<button class="btn btn-danger btn-sm" onclick="deleteEkspres('+e.id+')">🗑️</button>'+
+      '</div></td></tr>';
+  }).join('');
+}
+
+var editingEkspresId=null;
+
+function openAddEkspres(){
+  editingEkspresId=null;
+  document.getElementById('ekspresModalTitle').textContent="Ekspres qo'shish";
+  document.getElementById('ekspresId').value='';
+  document.getElementById('ekspresFio').value='';
+  document.getElementById('ekspresTolov').value='';
+  document.getElementById('ekspresBor083').checked=false;
+  var filialSel=document.getElementById('ekspresFilialId');
+  if(currentUser && currentUser.type==='filial'){
+    document.getElementById('ekspresFilialWrap').style.display='none';
+  } else {
+    document.getElementById('ekspresFilialWrap').style.display='';
+    filialSel.innerHTML='<option value="">-- Tanlang --</option>'+allFiliallar.map(function(f){return '<option value="'+f.id+'">'+esc(f.nomi)+'</option>';}).join('');
+  }
+  document.getElementById('ekspresModal').classList.add('open');
+}
+
+function openEditEkspres(id){
+  var e=allEkspres.find(function(x){return x.id===id;});
+  if(!e) return;
+  editingEkspresId=id;
+  document.getElementById('ekspresModalTitle').textContent="Ekspres tahrirlash";
+  document.getElementById('ekspresId').value=e.id;
+  document.getElementById('ekspresFio').value=e.fio;
+  document.getElementById('ekspresTolov').value=e.tolov_summa;
+  document.getElementById('ekspresBor083').checked=!!e.bor_083;
+  var filialSel=document.getElementById('ekspresFilialId');
+  if(currentUser && currentUser.type==='filial'){
+    document.getElementById('ekspresFilialWrap').style.display='none';
+  } else {
+    document.getElementById('ekspresFilialWrap').style.display='';
+    filialSel.innerHTML='<option value="">-- Tanlang --</option>'+allFiliallar.map(function(f){return '<option value="'+f.id+'">'+esc(f.nomi)+'</option>';}).join('');
+    filialSel.value=e.filial_id;
+  }
+  document.getElementById('ekspresModal').classList.add('open');
+}
+
+function saveEkspres(){
+  var fio=document.getElementById('ekspresFio').value.trim();
+  var tolov=parseInt(document.getElementById('ekspresTolov').value)||0;
+  var bor083=document.getElementById('ekspresBor083').checked;
+  var filialId = (currentUser && currentUser.type==='filial') ? currentUser.id : document.getElementById('ekspresFilialId').value;
+  if(!fio){ showAlert("F.I.O ni kiriting!"); return; }
+  if(!filialId){ showAlert("Filialni tanlang!"); return; }
+  var data={fio:fio, tolov_summa:tolov, bor_083:bor083, filial_id:filialId};
+  showLoader();
+  var p = editingEkspresId
+    ? sb.from('ekspres').update(data).eq('id',editingEkspresId)
+    : sb.from('ekspres').insert(data);
+  p.then(function(res){
+    hideLoader();
+    if(res.error){ showAlert("Xato: "+res.error.message); return; }
+    closeModal('ekspresModal');
+    loadEkspres();
+  });
+}
+
+function deleteEkspres(id){
+  showConfirm("Bu ekspres yozuvini o'chirmoqchimisiz?", function(){
+    showLoader();
+    sb.from('ekspres').delete().eq('id',id).then(function(res){
+      hideLoader();
+      if(res.error){ showAlert("Xato: "+res.error.message); return; }
+      loadEkspres();
+    });
+  });
+}
+
+// ============================================================
 // HISOBOT
 // ============================================================
+function populateHisobotYil(){
+  var sel=document.getElementById('hisobotYil');
+  if(sel.options.length) return;
+  var curYear=new Date().getFullYear();
+  var html='';
+  for(var y=2026; y<=2035; y++){
+    html+='<option value="'+y+'"'+(y===curYear?' selected':'')+'>'+y+'-yil</option>';
+  }
+  html+='<option value="all">Barcha yillar</option>';
+  sel.innerHTML=html;
+}
+
 function loadHisobot(){
+  populateHisobotYil();
+  var selYil=document.getElementById('hisobotYil').value;
   showLoader();
   Promise.all([
     sb.from('filiallar').select('*'),
     sb.from('guruhlar').select('*'),
-    sb.from('talabalar').select('*')
+    sb.from('talabalar').select('*'),
+    sb.from('ekspres').select('*')
   ]).then(function(r){
     hideLoader();
     if(r[0].error){showAlert("Xato!");return;}
-    var fl=r[0].data||[], gl=r[1].data||[], tl=r[2].data||[];
+    var fl=r[0].data||[], gl=r[1].data||[], tl=r[2].data||[], ek=r[3].data||[];
     if(currentUser && currentUser.type==='filial'){
       fl=fl.filter(function(f){return String(f.id)===String(currentUser.id);});
       var myGIds=gl.filter(function(g){return String(g.filial_id)===String(currentUser.id);}).map(function(g){return g.id;});
       gl=gl.filter(function(g){return String(g.filial_id)===String(currentUser.id);});
       tl=tl.filter(function(t){return myGIds.indexOf(t.guruh_id)!==-1;});
+      ek=ek.filter(function(e){return String(e.filial_id)===String(currentUser.id);});
+    }
+    if(selYil!=='all'){
+      tl=tl.filter(function(t){return t.created_at && new Date(t.created_at).getFullYear()===parseInt(selYil);});
+      ek=ek.filter(function(e){return e.yaratilgan && new Date(e.yaratilgan).getFullYear()===parseInt(selYil);});
     }
     var totT=tl.length;
     var totU=tl.reduce(function(s,t){return s+(t.umumiy_tolov||0);},0);
@@ -1443,20 +1626,40 @@ function loadHisobot(){
       sCard("Umumiy",fmt(totU),"#d69e2e")+
       sCard("To'langan",fmt(totTol),"#38a169")+
       sCard("Qoldiq",fmt(totQ),"#e53e3e");
-    document.getElementById('hisobotTable').innerHTML=fl.map(function(f){
+
+    if(ek.length){
+      document.getElementById('ekspresHisobotCard').style.display='';
+      var ekSum=ek.reduce(function(s,e){return s+(e.tolov_summa||0);},0);
+      var ek083=ek.filter(function(e){return e.bor_083;}).length;
+      document.getElementById('ekspresHisobotStats').innerHTML=
+        sCard("Ekspres soni",ek.length+" ta","#805ad5")+
+        sCard("Umumiy summa",fmt(ekSum),"#d69e2e")+
+        sCard("083 bor",ek083+" ta","#38a169")+
+        sCard("083 yo'q",(ek.length-ek083)+" ta","#e53e3e");
+    } else {
+      document.getElementById('ekspresHisobotCard').style.display='none';
+    }
+
+    var rows=fl.map(function(f){
       var fG=gl.filter(function(g){return g.filial_id===f.id;});
       var fT=tl.filter(function(t){return fG.some(function(g){return g.id===t.guruh_id;});});
       var um=fT.reduce(function(s,t){return s+(t.umumiy_tolov||0);},0);
       var tol=fT.reduce(function(s,t){return s+(t.tolangan||0);},0);
       var qol=fT.reduce(function(s,t){return s+(t.qoldiq||0);},0);
       var pct=um>0?Math.round(tol/um*100):0;
-      return '<tr><td><strong>'+esc(f.nomi)+'</strong></td>'+
-        '<td>'+fG.length+' ta</td><td>'+fT.length+' ta</td>'+
-        '<td>'+fmt(um)+'</td>'+
-        '<td style="color:#276749"><strong>'+fmt(tol)+'</strong></td>'+
-        '<td style="color:#c53030"><strong>'+fmt(qol)+'</strong></td>'+
+      return {nomi:f.nomi, gSon:fG.length, tSon:fT.length, um:um, tol:tol, qol:qol, pct:pct};
+    });
+    rows.sort(function(a,b){return b.tol-a.tol;});
+
+    document.getElementById('hisobotTable').innerHTML=rows.map(function(r,i){
+      var medal = i===0?'🥇':(i===1?'🥈':(i===2?'🥉':(i+1)+''));
+      return '<tr><td style="text-align:center;font-weight:700">'+medal+'</td><td><strong>'+esc(r.nomi)+'</strong></td>'+
+        '<td>'+r.gSon+' ta</td><td>'+r.tSon+' ta</td>'+
+        '<td>'+fmt(r.um)+'</td>'+
+        '<td style="color:#276749"><strong>'+fmt(r.tol)+'</strong></td>'+
+        '<td style="color:#c53030"><strong>'+fmt(r.qol)+'</strong></td>'+
         '<td><div style="background:#e2e8f0;border-radius:10px;height:8px;width:80px;display:inline-block;vertical-align:middle">'+
-        '<div style="background:#38a169;height:8px;border-radius:10px;width:'+pct+'%"></div></div> '+pct+'%</td></tr>';
+        '<div style="background:#38a169;height:8px;border-radius:10px;width:'+r.pct+'%"></div></div> '+r.pct+'%</td></tr>';
     }).join('');
   });
 }
