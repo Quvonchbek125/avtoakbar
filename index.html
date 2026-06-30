@@ -378,8 +378,9 @@ tr:hover td{background:#f7fafc}
 
 <!-- PAROLLAR MODAL -->
 <div class="modal-overlay" id="parollarModal">
-  <div class="modal" style="max-width:400px">
-    <h3>🔑 Filial parollari</h3>
+  <div class="modal" style="max-width:480px">
+    <h3>🔑 Filial parollarini boshqarish</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:14px">Xavfsizlik tufayli eski parollarni ko'rsatib bo'lmaydi. Yangi parol o'rnating.</p>
     <div id="parollarContent"></div>
     <div class="modal-footer">
       <button class="btn" style="background:#eee" onclick="closeModal('parollarModal')">Yopish</button>
@@ -720,6 +721,7 @@ function openAdminParollar() {
   document.getElementById('parollarPassModal').classList.add('open');
   setTimeout(function(){ document.getElementById('parollarPassInput').focus(); },100);
 }
+var cachedAdminPass = null;
 function confirmParollarPass() {
   var val = document.getElementById('parollarPassInput').value;
   showLoader();
@@ -727,6 +729,7 @@ function confirmParollarPass() {
     hideLoader();
     if(res.error){ document.getElementById('parollarPassError').textContent = "Server xato!"; return; }
     if(res.data === true) {
+      cachedAdminPass = val;
       document.getElementById('parollarPassModal').classList.remove('open');
       showParollar();
     } else {
@@ -735,16 +738,34 @@ function confirmParollarPass() {
   });
 }
 function showParollar() {
-  var html = '<table style="width:100%;border-collapse:collapse">' +
-    '<thead><tr><th style="padding:8px;background:#f7fafc;border-bottom:2px solid #e2e8f0;text-align:left">Filial</th>' +
-    '<th style="padding:8px;background:#f7fafc;border-bottom:2px solid #e2e8f0;text-align:left">Parol</th></tr></thead><tbody>';
+  var html = '';
   allFiliallar.forEach(function(f){
-    html += '<tr><td style="padding:10px 8px;border-bottom:1px solid #f0f4f8"><strong>'+esc(f.nomi)+'</strong></td>'+
-      '<td style="padding:10px 8px;border-bottom:1px solid #f0f4f8;font-family:monospace;color:#2d6a9f">'+esc(f.paroli)+'</td></tr>';
+    html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;padding:10px;background:#f7fafc;border-radius:8px">'+
+      '<div style="flex:1;font-weight:600;font-size:13px">'+esc(f.nomi)+'</div>'+
+      '<input type="text" id="newpass_'+f.id+'" placeholder="Yangi parol..." style="flex:1.5;padding:7px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px" />'+
+      '<button class="btn btn-success btn-sm" onclick="setFilialPassword('+f.id+')">O\'rnatish</button>'+
+      '</div>';
   });
-  html += '</tbody></table>';
+  if(!allFiliallar.length) html = '<p style="color:#aaa;text-align:center">Filiallar yo\'q</p>';
   document.getElementById('parollarContent').innerHTML = html;
   document.getElementById('parollarModal').classList.add('open');
+}
+function setFilialPassword(filialId) {
+  var input = document.getElementById('newpass_'+filialId);
+  var yangiParol = input.value.trim();
+  if(!yangiParol || yangiParol.length < 4) { showAlert("Parol kamida 4 ta belgidan iborat bo'lsin!"); return; }
+  if(!cachedAdminPass) { showAlert("Sessiya tugadi, qaytadan kiring!"); closeModal('parollarModal'); return; }
+  showLoader();
+  sb.rpc('set_filial_password', { p_admin_parol: cachedAdminPass, p_filial_id: filialId, p_yangi_parol: yangiParol }).then(function(res) {
+    hideLoader();
+    if(res.error){ showAlert("Xato: "+res.error.message); return; }
+    if(res.data === true) {
+      input.value = '';
+      showAlert("✅ Parol muvaffaqiyatli o'rnatildi!");
+    } else {
+      showAlert("Xato: admin tasdiqlash muvaffaqiyatsiz!");
+    }
+  });
 }
 
 function openAddFilial(){
