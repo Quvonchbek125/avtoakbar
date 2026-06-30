@@ -319,6 +319,13 @@ tr:hover td{background:#f7fafc}
         <tbody id="ekspresReytingTable"></tbody>
       </table>
     </div>
+    <div class="card">
+      <div class="card-header"><h2>👥 Guruhlar reytingi</h2></div>
+      <table>
+        <thead><tr><th>O'rin</th><th>Guruh</th><th>Filial</th><th>Talabalar</th><th>Umumiy to'lov</th><th>To'langan</th><th>Qoldiq</th><th>%</th></tr></thead>
+        <tbody id="guruhReytingTable"></tbody>
+      </table>
+    </div>
   </div>
 
   <!-- EKSPRES MODAL -->
@@ -377,6 +384,20 @@ tr:hover td{background:#f7fafc}
     <h3 id="talabaModalTitle">Talaba qo'shish</h3>
     <div class="form-group"><label>Guruh</label><select id="talabaGuruhId"></select></div>
     <div class="form-group"><label>F.I.O</label><input id="talabaFio" placeholder="Familiya Ism Otasining ismi" autocomplete="off" /></div>
+    <div class="form-row">
+      <div class="form-group"><label>Telefon raqami</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="background:#edf2f7;padding:9px 10px;border-radius:6px;font-weight:600;color:#2d3748">+998</span>
+          <input id="talabaTel" type="tel" placeholder="901234567" maxlength="7" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,7)" />
+        </div>
+      </div>
+      <div class="form-group"><label>Qo'shimcha raqam (ixtiyoriy)</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="background:#edf2f7;padding:9px 10px;border-radius:6px;font-weight:600;color:#2d3748">+998</span>
+          <input id="talabaTel2" type="tel" placeholder="901234567" maxlength="7" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,7)" />
+        </div>
+      </div>
+    </div>
     <div class="form-row">
       <div class="form-group"><label>Tug'ilgan yil</label><input id="talabaTugilganYil" type="number" placeholder="2000" /></div>
       <div class="form-group"><label>Kun</label><input id="talabaTugilganKun" type="number" placeholder="15" /></div>
@@ -1161,6 +1182,9 @@ function loadTalabalar(){
   }
   if(currentUser&&currentUser.type==='filial'){
     var myGIds=allGuruhlar.filter(function(g){return String(g.filial_id)===String(currentUser.id);}).map(function(g){return g.id;});
+    if(guruhFilter){
+      myGIds = myGIds.filter(function(id){ return String(id)===String(guruhFilter); });
+    }
     query=myGIds.length ? sb.from('talabalar').select('*').eq('yil',selectedYear).order('id').in('guruh_id',myGIds) : sb.from('talabalar').select('*').eq('yil',selectedYear).order('id').eq('guruh_id',-1);
   }
   query.then(function(res){
@@ -1221,7 +1245,7 @@ function calcTalabaUmumiy(){
 function openAddTalaba(){
   editingTalabaId=null;
   document.getElementById('talabaModalTitle').textContent="Talaba qo'shish";
-  ['talabaFio','talabaTugilganYil','talabaTugilganKun','talabaViloyat','talabaTuman','talabaMahalla','talabaKocha','talabaUmumiy'].forEach(function(id){document.getElementById(id).value='';});
+  ['talabaFio','talabaTel','talabaTel2','talabaTugilganYil','talabaTugilganKun','talabaViloyat','talabaTuman','talabaMahalla','talabaKocha','talabaUmumiy'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('talabaOy').value='';
   document.getElementById('talabaAyolInstruktor').checked=false;
   document.getElementById('talabaUmumiyJami').textContent='';
@@ -1237,6 +1261,8 @@ function openEditTalaba(id){
     document.getElementById('talabaModalTitle').textContent="Talaba tahrirlash";
     document.getElementById('talabaGuruhId').value=t.guruh_id;
     document.getElementById('talabaFio').value=t.fio;
+    document.getElementById('talabaTel').value=(t.tel||'').replace('+998','');
+    document.getElementById('talabaTel2').value=(t.tel2||'').replace('+998','');
     document.getElementById('talabaTugilganYil').value=t.tugilgan_yil||'';
     document.getElementById('talabaTugilganKun').value=t.tugilgan_kun||'';
     document.getElementById('talabaOy').value=t.oy||'';
@@ -1256,11 +1282,16 @@ function openEditTalaba(id){
 function saveTalaba(){
   var guruh_id=parseInt(document.getElementById('talabaGuruhId').value);
   var fio=document.getElementById('talabaFio').value.trim();
+  var tel=document.getElementById('talabaTel').value.trim();
+  var tel2=document.getElementById('talabaTel2').value.trim();
   var baseUmumiy=parseInt(document.getElementById('talabaUmumiy').value)||0;
   var ayolInstr=document.getElementById('talabaAyolInstruktor').checked;
   var umumiy = baseUmumiy + (ayolInstr ? AYOL_INSTR_NARX : 0);
   if(!guruh_id||!fio){showAlert("Guruh va F.I.O to'ldiring!");return;}
+  if(!tel || tel.length!==7){showAlert("Telefon raqamini to'liq kiriting (7 ta raqam)!");return;}
   var data={guruh_id:guruh_id,fio:fio,
+    tel:'+998'+tel,
+    tel2: tel2 ? '+998'+tel2 : null,
     tugilgan_yil:parseInt(document.getElementById('talabaTugilganYil').value)||null,
     tugilgan_kun:parseInt(document.getElementById('talabaTugilganKun').value)||null,
     oy:document.getElementById('talabaOy').value,
@@ -1328,7 +1359,7 @@ function loadTolovlar(){
   var query=sb.from('talabalar').select('*').eq('yil',selectedYear).order('id');
   if(currentUser && currentUser.type==='filial'){
     var myGIds=allGuruhlar.filter(function(g){return String(g.filial_id)===String(currentUser.id);}).map(function(g){return g.id;});
-    if(guruhFilter && myGIds.indexOf(parseInt(guruhFilter))!==-1) query=query.eq('guruh_id',guruhFilter);
+    if(guruhFilter && myGIds.some(function(id){return String(id)===String(guruhFilter);})) query=query.eq('guruh_id',guruhFilter);
     else if(myGIds.length) query=query.in('guruh_id',myGIds);
     else { hideLoader(); document.getElementById('tolovlarTable').innerHTML='<tr><td colspan="13" style="text-align:center;color:#aaa;padding:30px">Ma\'lumot yo\'q</td></tr>'; return; }
   } else if(guruhFilter) query=query.eq('guruh_id',guruhFilter);
@@ -1744,6 +1775,28 @@ function loadHisobot(){
     } else {
       document.getElementById('ekspresReytingCard').style.display='none';
     }
+
+    var gRows=gl.map(function(g){
+      var f=fl.find(function(x){return x.id===g.filial_id;}) || allFiliallar.find(function(x){return String(x.id)===String(g.filial_id);});
+      var gT=tl.filter(function(t){return t.guruh_id===g.id;});
+      var um=gT.reduce(function(s,t){return s+(t.umumiy_tolov||0);},0);
+      var tol=gT.reduce(function(s,t){return s+(t.tolangan||0);},0);
+      var qol=gT.reduce(function(s,t){return s+(t.qoldiq||0);},0);
+      var pct=um>0?Math.round(tol/um*100):0;
+      return {nomi:g.nomi, filialNomi:f?f.nomi:'—', tSon:gT.length, um:um, tol:tol, qol:qol, pct:pct};
+    }).filter(function(r){return r.tSon>0;});
+    gRows.sort(function(a,b){return b.tol-a.tol;});
+
+    document.getElementById('guruhReytingTable').innerHTML = gRows.length ? gRows.map(function(r,i){
+      var medal = i===0?'🥇':(i===1?'🥈':(i===2?'🥉':(i+1)+''));
+      return '<tr><td style="text-align:center;font-weight:700">'+medal+'</td><td><strong>'+esc(r.nomi)+'</strong></td>'+
+        '<td>'+esc(r.filialNomi)+'</td><td>'+r.tSon+' ta</td>'+
+        '<td>'+fmt(r.um)+'</td>'+
+        '<td style="color:#276749"><strong>'+fmt(r.tol)+'</strong></td>'+
+        '<td style="color:#c53030"><strong>'+fmt(r.qol)+'</strong></td>'+
+        '<td><div style="background:#e2e8f0;border-radius:10px;height:8px;width:80px;display:inline-block;vertical-align:middle">'+
+        '<div style="background:#38a169;height:8px;border-radius:10px;width:'+r.pct+'%"></div></div> '+r.pct+'%</td></tr>';
+    }).join('') : '<tr><td colspan="8" style="text-align:center;color:#aaa;padding:20px">Ma\'lumot yo\'q</td></tr>';
   });
 }
 function sCard(l,v,c){return '<div class="stat-card" style="border-left-color:'+c+'"><h3>'+l+'</h3><div class="value" style="color:'+c+'">'+v+'</div></div>';}
