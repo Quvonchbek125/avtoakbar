@@ -638,6 +638,9 @@ function yearDate(){
   d.setFullYear(parseInt(selectedYear));
   return d.toISOString();
 }
+function currentYearValue(){
+  return selectedYear === 'all' ? new Date().getFullYear() : parseInt(selectedYear);
+}
 
 var selectedYear = 'all';
 
@@ -1287,6 +1290,7 @@ function saveTalaba(){
     data.tolov1=0;data.tolov2=0;data.tolov3=0;data.tolov4=0;data.tolov5=0;
     data.tolangan=0;data.qoldiq=umumiy;data.holat='Qarzdor';
     data.created_at=yearDate();
+    data.yil=currentYearValue();
     sb.from('talabalar').insert(data).then(function(res){
       hideLoader();
       if(res.error){showAlert("Xato: "+res.error.message);return;}
@@ -1609,7 +1613,7 @@ function saveEkspres(){
   if(!fio){ showAlert("F.I.O ni kiriting!"); return; }
   if(!filialId){ showAlert("Filialni tanlang!"); return; }
   var data={fio:fio, tolov_summa:tolov, bor_083:bor083, filial_id:filialId};
-  if(!editingEkspresId) data.yaratilgan=yearDate();
+  if(!editingEkspresId){ data.yaratilgan=yearDate(); data.yil=currentYearValue(); }
   showLoader();
   var p = editingEkspresId
     ? sb.from('ekspres').update(data).eq('id',editingEkspresId)
@@ -1668,8 +1672,8 @@ function loadHisobot(){
       ek=ek.filter(function(e){return String(e.filial_id)===String(currentUser.id);});
     }
     if(selYil!=='all'){
-      tl=tl.filter(function(t){return t.created_at && new Date(t.created_at).getFullYear()===parseInt(selYil);});
-      ek=ek.filter(function(e){return e.yaratilgan && new Date(e.yaratilgan).getFullYear()===parseInt(selYil);});
+      tl=tl.filter(function(t){ return (t.yil!=null ? t.yil : (t.created_at?new Date(t.created_at).getFullYear():null)) === parseInt(selYil); });
+      ek=ek.filter(function(e){ return (e.yil!=null ? e.yil : (e.yaratilgan?new Date(e.yaratilgan).getFullYear():null)) === parseInt(selYil); });
     }
     var totT=tl.length;
     var totU=tl.reduce(function(s,t){return s+(t.umumiy_tolov||0);},0);
