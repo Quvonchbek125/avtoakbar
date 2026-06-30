@@ -645,12 +645,8 @@ function currentYearValue(){
 var selectedYear = 'all';
 
 function loginSuccess(user) {
-  if (user.type === 'filial') {
-    document.getElementById('loginScreen').style.display = 'none';
-    showYearPicker(user);
-    return;
-  }
-  finalizeLogin(user);
+  document.getElementById('loginScreen').style.display = 'none';
+  showYearPicker(user);
 }
 
 function showYearPicker(user) {
@@ -677,7 +673,7 @@ function finalizeLogin(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').classList.remove('hidden');
   if (user.type === 'admin') {
-    document.getElementById('headerBranch').textContent = '👑 Admin';
+    document.getElementById('headerBranch').textContent = '👑 Admin (' + (selectedYear==='all'?'Barcha yillar':selectedYear+'-yil') + ')';
     document.getElementById('adminParolBtn').style.display = '';
   } else {
     document.getElementById('headerBranch').textContent = '🏢 ' + user.nomi + ' (' + (selectedYear==='all'?'Barcha yillar':selectedYear+'-yil') + ')';
