@@ -388,13 +388,13 @@ tr:hover td{background:#f7fafc}
       <div class="form-group"><label>Telefon raqami</label>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="background:#edf2f7;padding:9px 10px;border-radius:6px;font-weight:600;color:#2d3748">+998</span>
-          <input id="talabaTel" type="tel" placeholder="901234567" maxlength="7" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,7)" />
+          <input id="talabaTel" type="tel" placeholder="901234567" maxlength="9" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,9)" />
         </div>
       </div>
       <div class="form-group"><label>Qo'shimcha raqam (ixtiyoriy)</label>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="background:#edf2f7;padding:9px 10px;border-radius:6px;font-weight:600;color:#2d3748">+998</span>
-          <input id="talabaTel2" type="tel" placeholder="901234567" maxlength="7" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,7)" />
+          <input id="talabaTel2" type="tel" placeholder="901234567" maxlength="9" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,9)" />
         </div>
       </div>
     </div>
@@ -411,7 +411,25 @@ tr:hover td{background:#f7fafc}
           <option>Sentabr</option><option>Oktabr</option><option>Noyabr</option><option>Dekabr</option>
         </select>
       </div>
-      <div class="form-group"><label>Viloyat</label><input id="talabaViloyat" placeholder="Viloyat..." autocomplete="off" /></div>
+      <div class="form-group"><label>Viloyat</label>
+        <select id="talabaViloyat">
+          <option value="">Tanlang</option>
+          <option>Toshkent shahri</option>
+          <option>Toshkent viloyati</option>
+          <option>Andijon</option>
+          <option>Farg'ona</option>
+          <option>Namangan</option>
+          <option>Samarqand</option>
+          <option>Buxoro</option>
+          <option>Navoiy</option>
+          <option>Qashqadaryo</option>
+          <option>Surxondaryo</option>
+          <option>Jizzax</option>
+          <option>Sirdaryo</option>
+          <option>Xorazm</option>
+          <option>Qoraqalpog'iston</option>
+        </select>
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>Tuman</label><input id="talabaTuman" placeholder="Tuman..." autocomplete="off" /></div>
@@ -1142,7 +1160,8 @@ function saveGuruh(){
   prom.then(function(res){
     hideLoader();
     if(res.error){showAlert("Xato: "+res.error.message);return;}
-    closeModal('guruhModal'); loadGuruhlar();
+    closeModal('guruhModal');
+    loadAll(function(){ loadGuruhlar(); });
   });
 }
 function deleteGuruh(id){
@@ -1151,7 +1170,7 @@ function deleteGuruh(id){
     sb.from('guruhlar').delete().eq('id',id).then(function(res){
       hideLoader();
       if(res.error){showAlert("Xato: "+res.error.message);return;}
-      loadGuruhlar();
+      loadAll(function(){ loadGuruhlar(); });
     });
   });
 }
@@ -1288,7 +1307,7 @@ function saveTalaba(){
   var ayolInstr=document.getElementById('talabaAyolInstruktor').checked;
   var umumiy = baseUmumiy + (ayolInstr ? AYOL_INSTR_NARX : 0);
   if(!guruh_id||!fio){showAlert("Guruh va F.I.O to'ldiring!");return;}
-  if(!tel || tel.length!==7){showAlert("Telefon raqamini to'liq kiriting (7 ta raqam)!");return;}
+  if(!tel || tel.length!==9){showAlert("Telefon raqamini to'liq kiriting (9 ta raqam)!");return;}
   var data={guruh_id:guruh_id,fio:fio,
     tel:'+998'+tel,
     tel2: tel2 ? '+998'+tel2 : null,
