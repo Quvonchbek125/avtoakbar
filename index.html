@@ -199,7 +199,8 @@ tr:hover td{background:#f7fafc}
     <div class="card">
       <div class="card-header">
         <h2>🎓 Talabalar</h2>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" onclick="showPage('guruhlar',document.querySelector('[data-page=\'guruhlar\']'))">⬅️ Orqaga</button>
           <select id="talFilialFilter" class="search-bar" onchange="onTalFilialChange()">
             <option value="">Barcha filiallar</option>
           </select>
@@ -222,7 +223,8 @@ tr:hover td{background:#f7fafc}
     <div class="card">
       <div class="card-header">
         <h2>💰 To'lovlar</h2>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" onclick="showPage('talabalar',document.querySelector('[data-page=\'talabalar\']'))">⬅️ Orqaga</button>
           <select id="tolovFilialFilter" class="search-bar" onchange="onTolovFilialChange()">
             <option value="">Barcha filiallar</option>
           </select>
@@ -244,17 +246,24 @@ tr:hover td{background:#f7fafc}
     <div class="card">
       <div class="card-header">
         <h2>🚫 Bloklanganlar ro'yxati</h2>
-        <button class="btn btn-success" onclick="loadBloklanganlar()">🔄 Yangilash</button>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" onclick="showPage('filiallar',document.querySelector('[data-page=\'filiallar\']'))">⬅️ Orqaga</button>
+          <button class="btn btn-success" onclick="loadBloklanganlar()">🔄 Yangilash</button>
+        </div>
       </div>
       <table>
-        <thead><tr><th>#</th><th>IP / ID</th><th>Xato soni</th><th>Blok turi</th><th>Blok tugash vaqti</th><th>Amal</th></tr></thead>
-        <tbody id="bloklanganlarTable"><tr><td colspan="6" style="text-align:center;color:#aaa;padding:30px">Yuklanmoqda...</td></tr></tbody>
+        <thead><tr><th>#</th><th>IP / ID</th><th>Xato soni</th><th>Holat</th><th>Bloklangan sana</th><th>Tugash vaqti</th><th>Amal</th></tr></thead>
+        <tbody id="bloklanganlarTable"><tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">Yuklanmoqda...</td></tr></tbody>
       </table>
     </div>
   </div>
 
   <!-- HISOBOT -->
   <div class="page" id="page-hisobot">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button class="btn btn-primary" onclick="showPage('filiallar',document.querySelector('[data-page=\'filiallar\']'))">⬅️ Orqaga</button>
+      <h2 style="font-size:18px;color:#1a3a5c">📊 Hisobot</h2>
+    </div>
     <div id="hisobotStats" class="stats-grid"></div>
     <div class="card">
       <div class="card-header"><h2>📊 Filiallar statistikasi</h2></div>
@@ -995,6 +1004,7 @@ function renderTalabalar(data){
       '<td style="color:#c53030"><strong>'+fmt(t.qoldiq)+'</strong></td>'+
       '<td><span class="badge '+bc+'">'+esc(t.holat)+'</span></td>'+
       '<td><div class="btn-group">'+
+      '<button class="btn btn-success btn-sm" onclick="openTolov('+t.id+')">💰 To\'lov</button>'+
       '<button class="btn btn-warning btn-sm" onclick="openEditTalaba('+t.id+')">✏️</button>'+
       '<button class="btn btn-danger btn-sm" onclick="deleteTalaba('+t.id+')">🗑️</button>'+
       '</div></td></tr>';
@@ -1197,10 +1207,10 @@ function loadBloklanganlar(){
   sb.from('bloklanganlar').select('*').order('id').then(function(res){
     hideLoader();
     var tbody = document.getElementById('bloklanganlarTable');
-    if(res.error){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#e53e3e;padding:30px">Xato: '+res.error.message+'</td></tr>'; return; }
+    if(res.error){ tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#e53e3e;padding:30px">Xato: '+res.error.message+'</td></tr>'; return; }
     var data = res.data||[];
     if(!data.length){
-      tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#aaa;padding:30px">Bloklangan foydalanuvchi yo\'q ✅</td></tr>'; return;
+      tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">Bloklangan foydalanuvchi yo\'q ✅</td></tr>'; return;
     }
     var now = new Date();
     tbody.innerHTML = data.map(function(d,i){
@@ -1209,16 +1219,18 @@ function loadBloklanganlar(){
         turi='⛔ Doimiy'; badge='badge-blocked';
       } else if(d.vaqtinchalik_blok && new Date(d.vaqtinchalik_blok)>now){
         var min=Math.ceil((new Date(d.vaqtinchalik_blok)-now)/60000);
-        turi='⏱️ '+min+' daqiqa'; badge='badge-warning';
+        turi='⏱️ '+min+' daqiqa qoldi'; badge='badge-warning';
       } else {
-        turi='✅ Faol'; badge='badge-success';
+        turi='✅ Faol (blok tugagan)'; badge='badge-success';
       }
-      var vaqt = d.doimiy_blok ? 'Cheksiz' : (d.vaqtinchalik_blok ? new Date(d.vaqtinchalik_blok).toLocaleString('uz') : '—');
+      var boshlandi = d.yaratilgan ? new Date(d.yaratilgan).toLocaleString('uz-UZ',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+      var tugaydi = d.doimiy_blok ? 'Cheksiz' : (d.vaqtinchalik_blok ? new Date(d.vaqtinchalik_blok).toLocaleString('uz-UZ',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—');
       return '<tr><td>'+(i+1)+'</td>'+
         '<td style="font-size:11px;color:#666">'+esc(d.qurilma_id)+'</td>'+
         '<td><strong>'+d.urinishlar+'</strong></td>'+
         '<td><span class="badge '+badge+'">'+turi+'</span></td>'+
-        '<td>'+vaqt+'</td>'+
+        '<td style="font-size:12px">📅 '+boshlandi+'</td>'+
+        '<td style="font-size:12px">'+tugaydi+'</td>'+
         '<td><div class="btn-group">'+
         '<button class="btn btn-warning btn-sm" onclick="unblockVaqtinchalik('+d.id+')">⏱️ Vaqtinchalikni chiqar</button>'+
         '<button class="btn btn-danger btn-sm" onclick="unblockDoimiy('+d.id+')">⛔ Doimiyni chiqar</button>'+
