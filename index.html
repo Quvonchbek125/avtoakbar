@@ -1040,7 +1040,7 @@ function loadGuruhlar(){
     if(res.error){hideLoader();showAlert("Xato: "+res.error.message);return;}
     allGuruhlar = res.data||[];
     // Talabalarni ham yuklaymiz qarzdorlik uchun
-    sb.from('talabalar').select('guruh_id,holat,qoldiq').then(function(tres){
+    sb.from('talabalar').select('guruh_id,holat,qoldiq').eq('yil',selectedYear).then(function(tres){
       hideLoader();
       allTalabalar = tres.data||[];
       renderGuruhlar();
@@ -1149,7 +1149,7 @@ function loadTalabalar(){
   var filialFilter=document.getElementById('talFilialFilter').value;
   var search=(document.getElementById('searchTalaba').value||'').toLowerCase();
   showLoader();
-  var query=sb.from('talabalar').select('*').order('id');
+  var query=sb.from('talabalar').select('*').eq('yil',selectedYear).order('id');
   if(guruhFilter) query=query.eq('guruh_id',guruhFilter);
   else if(filialFilter){
     var gIds=allGuruhlar.filter(function(g){return String(g.filial_id)===String(filialFilter);}).map(function(g){return g.id;});
@@ -1158,7 +1158,7 @@ function loadTalabalar(){
   }
   if(currentUser&&currentUser.type==='filial'){
     var myGIds=allGuruhlar.filter(function(g){return String(g.filial_id)===String(currentUser.id);}).map(function(g){return g.id;});
-    query=myGIds.length ? sb.from('talabalar').select('*').order('id').in('guruh_id',myGIds) : sb.from('talabalar').select('*').order('id').eq('guruh_id',-1);
+    query=myGIds.length ? sb.from('talabalar').select('*').eq('yil',selectedYear).order('id').in('guruh_id',myGIds) : sb.from('talabalar').select('*').eq('yil',selectedYear).order('id').eq('guruh_id',-1);
   }
   query.then(function(res){
     hideLoader();
@@ -1322,7 +1322,7 @@ function loadTolovlar(){
   var filialFilter=document.getElementById('tolovFilialFilter').value;
   var search=(document.getElementById('searchTolov').value||'').toLowerCase();
   showLoader();
-  var query=sb.from('talabalar').select('*').order('id');
+  var query=sb.from('talabalar').select('*').eq('yil',selectedYear).order('id');
   if(currentUser && currentUser.type==='filial'){
     var myGIds=allGuruhlar.filter(function(g){return String(g.filial_id)===String(currentUser.id);}).map(function(g){return g.id;});
     if(guruhFilter && myGIds.indexOf(parseInt(guruhFilter))!==-1) query=query.eq('guruh_id',guruhFilter);
@@ -1528,9 +1528,9 @@ function loadEkspres(){
   var filialFilter=document.getElementById('ekspresFilialFilter').value;
   var search=(document.getElementById('searchEkspres').value||'').toLowerCase();
   showLoader();
-  var query=sb.from('ekspres').select('*').order('id',{ascending:false});
+  var query=sb.from('ekspres').select('*').eq('yil',selectedYear).order('id',{ascending:false});
   if(currentUser && currentUser.type==='filial'){
-    query=sb.from('ekspres').select('*').order('id',{ascending:false}).eq('filial_id',currentUser.id);
+    query=sb.from('ekspres').select('*').eq('yil',selectedYear).order('id',{ascending:false}).eq('filial_id',currentUser.id);
   } else if(filialFilter){
     query=query.eq('filial_id',filialFilter);
   }
