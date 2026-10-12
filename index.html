@@ -1831,6 +1831,28 @@ document.querySelectorAll('.modal-overlay').forEach(function(el){
   el.addEventListener('click',function(e){if(e.target===el) el.classList.remove('open');});
 });
 </script>
+  <script>
+// Faqat harf: ism, tuman, mahalla, ekspres, o'qituvchi
+['talabaFio','talabaTuman','talabaMahalla','ekspresFio','guruhOqituvchi'].forEach(function(id){
+  var el=document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('input',function(){
+    var v=this.value.replace(/[^\p{L}\s'ʻ’`.\-]/gu,'');
+    if(v!==this.value) this.value=v;
+  });
+});
+
+// Ko'cha: raqam faqat harf bo'lsa yoziladi
+(function(){
+  var el=document.getElementById('talabaKocha');
+  if(!el) return;
+  el.addEventListener('input',function(){
+    var v=this.value.replace(/[^\p{L}\p{N}\s'ʻ’`.,\-\/]/gu,'');
+    if(!/\p{L}/u.test(v)) v=v.replace(/\p{N}/gu,'');
+    if(v!==this.value) this.value=v;
+  });
+})();
+    </script>
 <script src="til.js"></script>
 </body>
 </html>
