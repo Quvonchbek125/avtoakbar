@@ -1955,6 +1955,30 @@ document.querySelectorAll('.modal-overlay').forEach(function(el){
   };
 })();
 </script>
+
+<script>
+// Har bir guruhda eng ko'pi bilan 24 ta talaba
+(function(){
+  var MAX=24;
+  var prev=saveTalaba;
+  window.saveTalaba=function(){
+    var gid=parseInt(document.getElementById('talabaGuruhId').value);
+    if(!gid){ return prev(); }
+    var q=sb.from('talabalar').select('id',{count:'exact',head:true}).eq('guruh_id',gid);
+    if(editingTalabaId) q=q.neq('id',editingTalabaId);
+    showLoader();
+    q.then(function(res){
+      hideLoader();
+      if(res.error){ showAlert("Xato: "+res.error.message); return; }
+      if((res.count||0)>=MAX){
+        showAlert("⛔ Guruh to'lgan!\nBitta guruhda eng ko'pi bilan "+MAX+" ta talaba bo'lishi mumkin.");
+        return;
+      }
+      prev();
+    });
+  };
+})();
+</script>
 <script src="til.js"></script>
 </body>
 </html>
