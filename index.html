@@ -432,8 +432,8 @@ tr:hover td{background:#f7fafc}
       </div>
     </div>
     <div class="form-row">
-<div class="form-group"><label>Tuman <span style="color:red">*</span></label>      
-  <div class="form-group"><label>Mahalla</label><input id="talabaMahalla" placeholder="Mahalla..." autocomplete="off" /></div>
+      <div class="form-group"><label>Tuman <span style="color:red">*</span></label><input id="talabaTuman" placeholder="Tuman..." autocomplete="off" /></div>
+      <div class="form-group"><label>Mahalla</label><input id="talabaMahalla" placeholder="Mahalla..." autocomplete="off" /></div>
     </div>
     <div class="form-group"><label>Ko'cha/Uy <span style="color:red">*</span></label><input id="talabaKocha" placeholder="Ko'cha, uy raqami..." autocomplete="off" /></div>
     <div class="form-row">
@@ -1331,8 +1331,8 @@ function saveTalaba(){
   if(!oy){showAlert("❌ Tug'ilgan oyni tanlang!");return;}
   if(!viloyat){showAlert("❌ Viloyatni tanlang!");return;}
   var tuman=document.getElementById('talabaTuman').value.trim();
-if(!tuman){showAlert("❌ Tumanni kiriting!");return;}
-  if(!kocha){showAlert("❌ Ko'cha/Mahalla manzilini kiriting!");return;}
+  if(!tuman){showAlert("❌ Tumanni kiriting!");return;}
+  if(!kocha){showAlert("❌ Ko'cha/Uy manzilini kiriting!");return;}
   if(!umumiy){showAlert("❌ Umumiy to'lov summasini kiriting!");return;}
   if(!editingTalabaId){
     if(isNaN(parseInt(document.getElementById('talabaBoshlangich').value))){showAlert("❌ Boshlang'ich to'lov summasini kiriting (0 bo'lsa ham)!");return;}
@@ -1346,7 +1346,7 @@ if(!tuman){showAlert("❌ Tumanni kiriting!");return;}
     tugilgan_kun:tugilganKun,
     oy:oy,
     viloyat:viloyat,
-    tuman:document.getElementById('talabaTuman').value,
+    tuman:tuman,
     mahalla:mahalla,
     kocha:kocha,
     ayol_instruktor:ayolInstr,
@@ -1864,9 +1864,5 @@ document.querySelectorAll('.modal-overlay').forEach(function(el){
   el.addEventListener('click',function(e){if(e.target===el) el.classList.remove('open');});
 });
 </script>
-</body>	
+</body>
 </html>
-
-
-
-
