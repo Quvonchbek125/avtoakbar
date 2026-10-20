@@ -399,11 +399,11 @@ tr:hover td{background:#f7fafc}
       </div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Tug'ilgan yil</label><input id="talabaTugilganYil" type="number" placeholder="2000" /></div>
-      <div class="form-group"><label>Kun</label><input id="talabaTugilganKun" type="number" placeholder="15" /></div>
+      <div class="form-group"><label>Tug'ilgan yil <span style="color:red">*</span></label><input id="talabaTugilganYil" type="number" placeholder="2000" /></div>
+      <div class="form-group"><label>Kun <span style="color:red">*</span></label><input id="talabaTugilganKun" type="number" placeholder="15" min="1" max="31" /></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Oy</label>
+      <div class="form-group"><label>Oy <span style="color:red">*</span></label>
         <select id="talabaOy">
           <option value="">Tanlang</option>
           <option>Yanvar</option><option>Fevral</option><option>Mart</option><option>Aprel</option>
@@ -411,7 +411,7 @@ tr:hover td{background:#f7fafc}
           <option>Sentabr</option><option>Oktabr</option><option>Noyabr</option><option>Dekabr</option>
         </select>
       </div>
-      <div class="form-group"><label>Viloyat</label>
+      <div class="form-group"><label>Viloyat <span style="color:red">*</span></label>
         <select id="talabaViloyat">
           <option value="">Tanlang</option>
           <option>Toshkent shahri</option>
@@ -435,8 +435,11 @@ tr:hover td{background:#f7fafc}
       <div class="form-group"><label>Tuman</label><input id="talabaTuman" placeholder="Tuman..." autocomplete="off" /></div>
       <div class="form-group"><label>Mahalla</label><input id="talabaMahalla" placeholder="Mahalla..." autocomplete="off" /></div>
     </div>
-    <div class="form-group"><label>Ko'cha/Uy</label><input id="talabaKocha" placeholder="Ko'cha, uy raqami..." autocomplete="off" /></div>
-    <div class="form-group"><label>Umumiy to'lov (so'm)</label><input id="talabaUmumiy" type="number" placeholder="0" oninput="calcTalabaUmumiy()" /></div>
+    <div class="form-group"><label>Ko'cha/Uy <span style="color:red">*</span></label><input id="talabaKocha" placeholder="Ko'cha, uy raqami..." autocomplete="off" /></div>
+    <div class="form-row">
+      <div class="form-group"><label>Umumiy to'lov (so'm) <span style="color:red">*</span></label><input id="talabaUmumiy" type="number" placeholder="0" oninput="calcTalabaUmumiy()" /></div>
+      <div class="form-group"><label>Boshlang'ich to'lov (so'm) <span style="color:red">*</span></label><input id="talabaBoshlangich" type="number" placeholder="0" min="0" autocomplete="off" /></div>
+    </div>
     <div class="form-group" style="background:#fef9e7;border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px">
       <input type="checkbox" id="talabaAyolInstruktor" onchange="calcTalabaUmumiy()" style="width:18px;height:18px;cursor:pointer" />
       <label for="talabaAyolInstruktor" style="margin:0;cursor:pointer;font-weight:600;color:#744210">👩‍🏫 Ayol instruktor (+1,000,000 so'm)</label>
@@ -517,7 +520,7 @@ tr:hover td{background:#f7fafc}
 // SUPABASE
 // ============================================================
 var SUPABASE_URL = "https://byilxvbtmdhdbchcyqts.supabase.co";
-var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5aWx4dmJ0bWRoZGJjaGN5cXRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NDk2MTYsImV4cCI6MjA5ODEyNTYxNn0.O5QhAy-GS1-cw0fv0sQs1--hEK_V7Y_1VwlMlUqH_mM";
+var SUPABASE_KEY = "sb_publishable_hlJl865sPjyKeEASn2EwOQ_hkkn3PGS";
 var sb = null;
 
 window.addEventListener('DOMContentLoaded', function() {
@@ -1264,10 +1267,13 @@ function calcTalabaUmumiy(){
 function openAddTalaba(){
   editingTalabaId=null;
   document.getElementById('talabaModalTitle').textContent="Talaba qo'shish";
-  ['talabaFio','talabaTel','talabaTel2','talabaTugilganYil','talabaTugilganKun','talabaViloyat','talabaTuman','talabaMahalla','talabaKocha','talabaUmumiy'].forEach(function(id){document.getElementById(id).value='';});
+  ['talabaFio','talabaTel','talabaTel2','talabaTugilganYil','talabaTugilganKun','talabaViloyat','talabaTuman','talabaMahalla','talabaKocha','talabaUmumiy','talabaBoshlangich'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('talabaOy').value='';
   document.getElementById('talabaAyolInstruktor').checked=false;
   document.getElementById('talabaUmumiyJami').textContent='';
+  // Yangi talabada boshlang'ich to'lov ko'rinsin
+  var boshlEl=document.getElementById('talabaBoshlangich');
+  if(boshlEl) boshlEl.closest('.form-group').style.display='';
   document.getElementById('talabaModal').classList.add('open');
 }
 function openEditTalaba(id){
@@ -1295,6 +1301,9 @@ function openEditTalaba(id){
     var baseUm = (t.umumiy_tolov||0) - (ayolInstr ? AYOL_INSTR_NARX : 0);
     document.getElementById('talabaUmumiy').value = baseUm;
     calcTalabaUmumiy();
+    // Tahrirlashda boshlang'ich to'lov yashiriladi
+    document.getElementById('talabaBoshlangich').value='';
+    document.getElementById('talabaBoshlangich').closest('.form-group').style.display='none';
     document.getElementById('talabaModal').classList.add('open');
   });
 }
@@ -1306,23 +1315,42 @@ function saveTalaba(){
   var baseUmumiy=parseInt(document.getElementById('talabaUmumiy').value)||0;
   var ayolInstr=document.getElementById('talabaAyolInstruktor').checked;
   var umumiy = baseUmumiy + (ayolInstr ? AYOL_INSTR_NARX : 0);
-  if(!guruh_id||!fio){showAlert("Guruh va F.I.O to'ldiring!");return;}
-  if(!tel || tel.length!==9){showAlert("Telefon raqamini to'liq kiriting (9 ta raqam)!");return;}
+  var tugilganYil=parseInt(document.getElementById('talabaTugilganYil').value)||0;
+  var tugilganKun=parseInt(document.getElementById('talabaTugilganKun').value)||0;
+  var oy=document.getElementById('talabaOy').value;
+  var viloyat=document.getElementById('talabaViloyat').value;
+  var kocha=document.getElementById('talabaKocha').value.trim();
+  var mahalla=document.getElementById('talabaMahalla').value.trim();
+  var boshlangich=parseInt(document.getElementById('talabaBoshlangich').value)||0;
+
+  // Majburiy maydonlar tekshiruvi
+  if(!guruh_id||!fio){showAlert("❌ Guruh va F.I.O to'ldirish shart!");return;}
+  if(!tel || tel.length!==9){showAlert("❌ Telefon raqamini to'liq kiriting (9 ta raqam)!");return;}
+  if(!tugilganYil||tugilganYil<1950||tugilganYil>2015){showAlert("❌ Tug'ilgan yilni to'g'ri kiriting (1950–2015)!");return;}
+  if(!tugilganKun||tugilganKun<1||tugilganKun>31){showAlert("❌ Tug'ilgan kunni to'g'ri kiriting (1–31)!");return;}
+  if(!oy){showAlert("❌ Tug'ilgan oyni tanlang!");return;}
+  if(!viloyat){showAlert("❌ Viloyatni tanlang!");return;}
+  if(!kocha){showAlert("❌ Ko'cha/Mahalla manzilini kiriting!");return;}
+  if(!umumiy){showAlert("❌ Umumiy to'lov summasini kiriting!");return;}
+  if(!editingTalabaId){
+    if(isNaN(parseInt(document.getElementById('talabaBoshlangich').value))){showAlert("❌ Boshlang'ich to'lov summasini kiriting (0 bo'lsa ham)!");return;}
+    if(boshlangich>umumiy){showAlert("❌ Boshlang'ich to'lov umumiy to'lovdan katta bo'lishi mumkin emas!");return;}
+  }
+
   var data={guruh_id:guruh_id,fio:fio,
     tel:'+998'+tel,
     tel2: tel2 ? '+998'+tel2 : null,
-    tugilgan_yil:parseInt(document.getElementById('talabaTugilganYil').value)||null,
-    tugilgan_kun:parseInt(document.getElementById('talabaTugilganKun').value)||null,
-    oy:document.getElementById('talabaOy').value,
-    viloyat:document.getElementById('talabaViloyat').value,
+    tugilgan_yil:tugilganYil,
+    tugilgan_kun:tugilganKun,
+    oy:oy,
+    viloyat:viloyat,
     tuman:document.getElementById('talabaTuman').value,
-    mahalla:document.getElementById('talabaMahalla').value,
-    kocha:document.getElementById('talabaKocha').value,
+    mahalla:mahalla,
+    kocha:kocha,
     ayol_instruktor:ayolInstr,
     umumiy_tolov:umumiy};
   showLoader();
   if(editingTalabaId){
-    // Tahrirlashda qoldiqni qayta hisoblash kerak (umumiy o'zgargan bo'lishi mumkin)
     sb.from('talabalar').select('tolangan').eq('id',editingTalabaId).single().then(function(curRes){
       var tolangan = (curRes.data && curRes.data.tolangan) || 0;
       var qoldiq = Math.max(0, umumiy - tolangan);
@@ -1336,8 +1364,11 @@ function saveTalaba(){
       });
     });
   } else {
-    data.tolov1=0;data.tolov2=0;data.tolov3=0;data.tolov4=0;data.tolov5=0;
-    data.tolangan=0;data.qoldiq=umumiy;data.holat='Qarzdor';
+    // Boshlang'ich to'lovni 1-qism to'lov sifatida saqlash
+    data.tolov1=boshlangich;data.tolov2=0;data.tolov3=0;data.tolov4=0;data.tolov5=0;
+    data.tolangan=boshlangich;
+    data.qoldiq=Math.max(0,umumiy-boshlangich);
+    data.holat=boshlangich>=umumiy?"To'lagan":(boshlangich>0?"Qisman":"Qarzdor");
     data.created_at=yearDate();
     data.yil=currentYearValue();
     sb.from('talabalar').insert(data).then(function(res){
@@ -1831,154 +1862,9 @@ document.querySelectorAll('.modal-overlay').forEach(function(el){
   el.addEventListener('click',function(e){if(e.target===el) el.classList.remove('open');});
 });
 </script>
-
-<script>
-// Faqat harf: ism, tuman, mahalla, ekspres, o'qituvchi
-['talabaFio','talabaTuman','talabaMahalla','ekspresFio','guruhOqituvchi'].forEach(function(id){
-  var el=document.getElementById(id);
-  if(!el) return;
-  el.addEventListener('input',function(){
-    var v=this.value.replace(/[^\p{L}\s'ʻ’`.\-]/gu,'');
-    if(v!==this.value) this.value=v;
-  });
-});
-
-// Ko'cha: raqam faqat harf bo'lsa yoziladi
-(function(){
-  var el=document.getElementById('talabaKocha');
-  if(!el) return;
-  el.addEventListener('input',function(){
-    var v=this.value.replace(/[^\p{L}\p{N}\s'ʻ’`.,\-\/]/gu,'');
-    if(!/\p{L}/u.test(v)) v=v.replace(/\p{N}/gu,'');
-    if(v!==this.value) this.value=v;
-  });
-})();
-</script>
-
-<script>
-// Yosh tekshiruvi (18 yosh) + istisno holat (o'qish muddati 2.5 oy)
-(function(){
-  var MONTHS=['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
-  var opts=MONTHS.map(function(m,i){return '<option value="'+(i+1)+'">'+m+'</option>';}).join('');
-  var wrap=document.createElement('div');
-  wrap.innerHTML=
-  '<div class="modal-overlay" id="yoshModal"><div class="modal" style="max-width:440px">'+
-   '<h3>⛔ Yoshingiz yetmaydi</h3>'+
-   '<div id="yoshInfo" style="background:#fff5f5;border-radius:8px;padding:14px;font-size:14px;line-height:1.8;color:#c53030"></div>'+
-   '<div id="yoshIstisno" class="hidden" style="margin-top:14px">'+
-     '<div style="font-size:13px;font-weight:700;color:#744210;margin-bottom:6px">Istisno holat</div>'+
-     '<div style="font-size:12px;color:#666;margin-bottom:10px">O\'qish muddati: 2.5 oy</div>'+
-     '<div class="form-row">'+
-       '<div class="form-group"><label>Hozirgi oy</label><select id="yoshOy">'+opts+'</select></div>'+
-       '<div class="form-group"><label>Hozirgi kun</label><input type="number" id="yoshKun" min="1" max="31"></div>'+
-     '</div>'+
-     '<button class="btn btn-primary" onclick="yoshTekshir()">Tekshirish</button>'+
-   '</div>'+
-   '<div id="yoshNatija" style="margin-top:14px;font-size:14px;line-height:1.8"></div>'+
-   '<div class="modal-footer">'+
-     '<button class="btn btn-warning" id="yoshIstisnoBtn" onclick="yoshIstisnoOch()">Istisno</button>'+
-     '<button class="btn btn-success hidden" id="yoshDavomBtn" onclick="yoshDavom()">Davom etish</button>'+
-     '<button class="btn" style="background:#eee" onclick="closeModal(\'yoshModal\')">Yopish</button>'+
-   '</div></div></div>';
-  document.body.appendChild(wrap.firstChild);
-
-  function $(id){return document.getElementById(id);}
-  function pad(n){return (n<10?'0':'')+n;}
-  function fmtD(d){return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear();}
-  function natija(html){$('yoshNatija').innerHTML=html;}
-
-  var origSave=saveTalaba, yoshOk=false;
-  window.saveTalaba=function(){
-    if(yoshOk){ yoshOk=false; return origSave(); }
-    var by=parseInt($('talabaTugilganYil').value);
-    var Y=currentYearValue();
-    if(by && by>Y-18){ openYosh(by,Y); return; }
-    origSave();
-  };
-
-  function openYosh(by,Y){
-    $('yoshInfo').innerHTML=
-      '<div>Tanlangan yil: '+Y+'-yil</div>'+
-      '<div>Tug\'ilgan yil: '+by+'</div>'+
-      '<div>Qabul qilinadigan eng katta tug\'ilgan yil: '+(Y-18)+'</div>';
-    var t=new Date();
-    $('yoshOy').value=t.getMonth()+1;
-    $('yoshKun').value=t.getDate();
-    $('yoshIstisno').classList.add('hidden');
-    $('yoshIstisnoBtn').classList.remove('hidden');
-    $('yoshDavomBtn').classList.add('hidden');
-    natija('');
-    $('yoshModal').classList.add('open');
-  }
-
-  window.yoshIstisnoOch=function(){
-    $('yoshIstisno').classList.remove('hidden');
-    $('yoshIstisnoBtn').classList.add('hidden');
-  };
-
-  window.yoshTekshir=function(){
-    $('yoshDavomBtn').classList.add('hidden');
-    var Y=currentYearValue();
-    var cm=parseInt($('yoshOy').value), cd=parseInt($('yoshKun').value);
-    var by=parseInt($('talabaTugilganYil').value);
-    var bm=MONTHS.indexOf($('talabaOy').value)+1;
-    var bd=parseInt($('talabaTugilganKun').value);
-    var err=function(m){natija('<div style="color:#c53030;font-weight:700">⚠️ '+m+'</div>');};
-    if(!cm||!cd){ err('Hozirgi oy va kunni kiriting'); return; }
-    if(!bm||!bd){ err('Tug\'ilgan oy va kunni asosiy oynada kiriting'); return; }
-
-    var start=new Date(Y,cm-1,cd);
-    var b18=new Date(by+18,bm-1,bd);
-    if(start.getMonth()!==cm-1||b18.getMonth()!==bm-1){ err('Kun noto\'g\'ri'); return; }
-
-    // kurs tugashi = boshlanish + 2 oy + 15 kun (2.5 oy)
-    var end=new Date(Y,cm-1+2,cd);
-    if(end.getDate()!==cd) end=new Date(Y,cm-1+3,0);
-    end.setDate(end.getDate()+15);
-
-    var lines=
-      '<div>Kursga kirish sanasi: '+fmtD(start)+'</div>'+
-      '<div>Kurs tugash sanasi: '+fmtD(end)+'</div>'+
-      '<div>18 yoshga to\'lish sanasi: '+fmtD(b18)+'</div>';
-    if(b18<=end){
-      natija('<div style="color:#276749;font-weight:700">✅ Qabul qilish mumkin</div>'+lines);
-      $('yoshDavomBtn').classList.remove('hidden');
-    } else {
-      natija('<div style="color:#c53030;font-weight:700">❌ Qabul qilib bo\'lmaydi: kurs tugaguncha 18 yoshga to\'lmaydi</div>'+lines);
-    }
-  };
-
-  window.yoshDavom=function(){
-    closeModal('yoshModal');
-    yoshOk=true;
-    saveTalaba();
-  };
-})();
-</script>
-
-<script>
-// Har bir guruhda eng ko'pi bilan 24 ta talaba
-(function(){
-  var MAX=24;
-  var prev=saveTalaba;
-  window.saveTalaba=function(){
-    var gid=parseInt(document.getElementById('talabaGuruhId').value);
-    if(!gid){ return prev(); }
-    var q=sb.from('talabalar').select('id',{count:'exact',head:true}).eq('guruh_id',gid);
-    if(editingTalabaId) q=q.neq('id',editingTalabaId);
-    showLoader();
-    q.then(function(res){
-      hideLoader();
-      if(res.error){ showAlert("Xato: "+res.error.message); return; }
-      if((res.count||0)>=MAX){
-        showAlert("⛔ Guruh to'lgan!\nBitta guruhda eng ko'pi bilan "+MAX+" ta talaba bo'lishi mumkin.");
-        return;
-      }
-      prev();
-    });
-  };
-})();
-</script>
-<script src="til.js"></script>
-</body>
+</body>	
 </html>
+
+
+
+
