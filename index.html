@@ -412,7 +412,7 @@ tr:hover td{background:#f7fafc}
         </select>
       </div>
       <div class="form-group"><label>Viloyat <span style="color:red">*</span></label>
-        <select id="talabaViloyat">
+        <select id="talabaViloyat" onchange="onViloyatChange()">
           <option value="">Tanlang</option>
           <option>Toshkent shahri</option>
           <option>Toshkent viloyati</option>
@@ -432,10 +432,23 @@ tr:hover td{background:#f7fafc}
       </div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Tuman</label><input id="talabaTuman" placeholder="Tuman..." autocomplete="off" /></div>
-      <div class="form-group"><label>Mahalla</label><input id="talabaMahalla" placeholder="Mahalla..." autocomplete="off" /></div>
+      <div class="form-group"><label>Tuman <span style="color:red">*</span></label>
+        <select id="talabaTuman" onchange="onTumanChange()">
+          <option value="">Avval viloyat tanlang</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Mahalla</label>
+        <select id="talabaMahalla" onchange="onMahallaChange()">
+          <option value="">Avval tuman tanlang</option>
+        </select>
+      </div>
     </div>
-    <div class="form-group"><label>Ko'cha/Uy <span style="color:red">*</span></label><input id="talabaKocha" placeholder="Ko'cha, uy raqami..." autocomplete="off" /></div>
+    <div class="form-group">
+      <label>Ko'cha/Uy <span style="color:red">*</span></label>
+      <select id="talabaKocha">
+        <option value="">Avval mahalla tanlang</option>
+      </select>
+    </div>
     <div class="form-row">
       <div class="form-group"><label>Umumiy to'lov (so'm) <span style="color:red">*</span></label><input id="talabaUmumiy" type="number" placeholder="0" oninput="calcTalabaUmumiy()" /></div>
       <div class="form-group"><label>Boshlang'ich to'lov (so'm) <span style="color:red">*</span></label><input id="talabaBoshlangich" type="number" placeholder="0" min="0" autocomplete="off" /></div>
@@ -1251,6 +1264,276 @@ function renderTalabalar(data){
 }
 
 var editingTalabaId=null;
+
+// ===== VILOYAT → TUMAN → MAHALLA → KO'CHA =====
+var VILOYAT_TUMAN={
+  'Toshkent shahri':['Bektemir','Chilonzor','Mirobod','Mirzo Ulug\'bek','Olmazar','Sergeli','Shayxontohur','Uchtepa','Yakkasaroy','Yunusobod','Yashnobod'],
+  'Toshkent viloyati':['Angren','Bekobod','Bo\'ka','Bo\'stonliq','Chinoz','Chirchiq','Ohangaron','Oqqo\'rg\'on','Parkent','Piskent','Qibray','Quyi Chirchiq','Toshkent tumani','Yuqori Chirchiq','Zangiota','O\'rtachirchiq'],
+  'Andijon':['Andijon shahri','Asaka','Baliqchi','Bo\'z','Buloqboshi','Izboskan','Jalolquduq','Xo\'jaobod','Marhamat','Oltinko\'l','Paxtaobod','Qo\'rg\'ontepa','Shahrixon','Ulug\'nor'],
+  'Farg\'ona':['Farg\'ona shahri','Bag\'dod','Beshariq','Buvayda','Dang\'ara','Furqat','Qo\'qon','Marg\'ilon','Oltiariq','O\'zbekiston','Quva','Rishton','So\'x','Toshloq','Uchko\'prik','Yozyovon'],
+  'Namangan':['Namangan shahri','Chortoq','Chust','Kosonsoy','Mingbuloq','Norin','Pop','To\'raqo\'rg\'on','Uychi','Yangiqo\'rg\'on'],
+  'Samarqand':['Samarqand shahri','Bulung\'ur','Ishtixon','Jomboy','Kattaqo\'rg\'on','Narpay','Nurobod','Oqdaryo','Pastdarg\'om','Paxtachi','Payariq','Qo\'shrabot','Toyloq','Urgut'],
+  'Buxoro':['Buxoro shahri','G\'ijduvon','Jondor','Kogon','Olot','Peshku','Qorovulbozor','Romitan','Shofirkon','Vobkent'],
+  'Navoiy':['Navoiy shahri','Karmana','Konimex','Navbahor','Nurota','Qiziltepa','Tomdi','Uchquduq','Xatirchi'],
+  'Qashqadaryo':['Qarshi shahri','Chiroqchi','Dehqonobod','G\'uzor','Kasbi','Ko\'kdala','Mirishkor','Muborak','Nishon','Qamashi','Shahrisabz','Yakkabog\''],
+  'Surxondaryo':['Termiz shahri','Angor','Bandixon','Boysun','Denov','Jarqo\'rg\'on','Muzrabot','Oltinsoy','Qiziriq','Sariosiyo','Sherobod','Sho\'rchi','Uzun'],
+  'Xorazm':['Urganch shahri','Bog\'ot','Gurlan','Xazorasp','Xiva','Xonqa','Kushkupir','Qo\'shko\'pir','Tuproqqal\'a','Yangiariq','Yangibozor'],
+  'Qoraqalpog\'iston':['No\'kis shahri','Amudaryo','Beruniy','Bo\'zatov','Chimboy','Ellikkala','Kegeyli','Mo\'ynoq','Nukus tumani','Qanliko\'l','Qo\'ng\'irot','Taxtako\'pir','To\'rtko\'l','Xo\'jayli'],
+  'Jizzax':['Jizzax shahri','Arnasoy','Do\'stlik','Forish','G\'allaorol','Mirzacho\'l','Paxtakor','Sharof Rashidov','Yangiobod','Zarbdor','Zafarobod','Zomin'],
+  'Sirdaryo':['Guliston shahri','Baxt','Boyovut','Guliston tumani','Havast','Mirzaobod','Oqoltin','Sardoba','Sayxunobod','Yangiyer']
+};
+
+function onViloyatChange(){
+  var viloyat=document.getElementById('talabaViloyat').value;
+  var tumanSel=document.getElementById('talabaTuman');
+  tumanSel.innerHTML='<option value="">Tanlang</option>';
+  document.getElementById('talabaMahalla').innerHTML='<option value="">Avval tuman tanlang</option>';
+  document.getElementById('talabaKocha').innerHTML='<option value="">Avval mahalla tanlang</option>';
+  if(viloyat && VILOYAT_TUMAN[viloyat]){
+    VILOYAT_TUMAN[viloyat].forEach(function(t){
+      var o=document.createElement('option');
+      o.value=t;o.textContent=t;tumanSel.appendChild(o);
+    });
+  }
+}
+
+// ===== TUMAN → MAHALLA MA'LUMOTLARI =====
+var TUMAN_MAHALLA={
+  // TOSHKENT SHAHRI
+  'Chilonzor':['Chilonzor-1','Chilonzor-2','Chilonzor-3','Chilonzor-4','Chilonzor-5','Chilonzor-6','Chilonzor-7','Chilonzor-8','Chilonzor-9','Chilonzor-10','Chilonzor-11','Chilonzor-12','Chilonzor-13','Chilonzor-14','Chilonzor-15','Chilonzor-16','Qoratosh','Olmazor','G\'alaba','Eski shahar'],
+  'Yunusobod':['Yunusobod-1','Yunusobod-2','Yunusobod-3','Yunusobod-4','Yunusobod-5','Yunusobod-6','Yunusobod-7','Yunusobod-8','Yunusobod-9','Yunusobod-10','Yunusobod-11','Yunusobod-12','Yunusobod-13','Yunusobod-14','Yunusobod-15','Yunusobod-16','Yunusobod-17','Yunusobod-18','Yunusobod-19','Do\'stlik','Amir Temur'],
+  'Mirzo Ulug\'bek':['Durmon yuli','Xadra','Shayhontohur','O\'g\'iloy','Uchtepa','Eski juvali','Yangi juvali','Mirobod','Farhod','Shayxontohur','Ko\'k saroy','Toshkent'],
+  'Mirobod':['Mirobod-1','Mirobod-2','Mirobod-3','Mirobod-4','Mirobod-5','Shayxontohur','Do\'stlik','Ko\'k saroy','Yangi hayot','Tinchlik'],
+  'Olmazar':['Olmazar','Qorasaroy','Yangi hayot','Obod','Tinchlik','Nurafshon','G\'alaba','Hamid Olimjon'],
+  'Shayxontohur':['Shayxontohur','Ko\'k saroy','Eski shahar','Sebzor','Zarqaynar','Kukcha','Taxtapul','Labi hovuz'],
+  'Uchtepa':['Uchtepa','Qo\'yliq','Sergeli','Do\'stlik','Hamkor','Yangi Sergeli','Bog\'ishamol'],
+  'Sergeli':['Sergeli-1','Sergeli-2','Sergeli-3','Sergeli-4','Sergeli-5','Sergeli-6','Yangi Sergeli','Qorasaroy'],
+  'Yakkasaroy':['Yakkasaroy','Yuqori Chirchiq','Qo\'rg\'on','Yangi hayot','Ko\'k saroy','Chorsu','Eski shahar'],
+  'Bektemir':['Bektemir','Yangi hayot','Qurilish','Do\'stlik','Uychi','Sharq'],
+  'Yashnobod':['Yashnobod','Sebzor','Beshqayrag\'och','Hamkor','Tinchlik','Gulshan','Baxt'],
+  // TOSHKENT VILOYATI
+  'Qibray':['Qibray','Yangi qo\'rg\'on','Parkent','Olmazor','Bog\'iston','Do\'stlik','Navro\'z'],
+  'Zangiota':['Zangiota','Yangi hayot','Bog\'bon','Olmazor','Navro\'z','Do\'stlik'],
+  'Toshkent tumani':['Toshkent','Yangi hayot','Do\'stlik','Ko\'kcha','Hamkor','Gulshan'],
+  'Chinoz':['Chinoz','Yangi Chinoz','Bog\'iston','Do\'stlik','Navro\'z','Gulshan'],
+  'Ohangaron':['Ohangaron','Yangi shahar','Metallurg','Do\'stlik','Navro\'z'],
+  'Oqqo\'rg\'on':['Oqqo\'rg\'on','Yangi hayot','Obod','Do\'stlik','Navro\'z'],
+  'Parkent':['Parkent','Yangi Parkent','Bog\'iston','Do\'stlik','Navro\'z'],
+  'Piskent':['Piskent','Yangi Piskent','Bog\'iston','Do\'stlik','Navro\'z'],
+  'Yuqori Chirchiq':['Gazalkent','Yangi hayot','Do\'stlik','Navro\'z','Bog\'iston'],
+  'Quyi Chirchiq':['Iskandar','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'O\'rtachirchiq':['Toytepa','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Bo\'ka':['Bo\'ka','Yangi Bo\'ka','Do\'stlik','Navro\'z','Hamkor'],
+  'Bo\'stonliq':['G\'azalkent','Chorvoq','Yangi hayot','Do\'stlik','Navro\'z'],
+  'Chirchiq':['Chirchiq','Yangi shahar','Kimyogar','Do\'stlik','Navro\'z'],
+  'Angren':['Angren','Yangi shahar','Konchi','Do\'stlik','Navro\'z'],
+  'Bekobod':['Bekobod','Yangi shahar','Metallurg','Do\'stlik','Navro\'z'],
+  // ANDIJON
+  'Andijon shahri':['Andijon','Xonobod','Ko\'k Terek','Yangiqo\'rg\'on','Hamkor','Navro\'z','Gulshan','Baxt','Tinchlik','Do\'stlik','Mustaqillik'],
+  'Asaka':['Asaka','Yangi Asaka','Do\'stlik','Navro\'z','Hamkor','Gulshan'],
+  'Baliqchi':['Baliqchi','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Bo\'z':['Bo\'z','Yangi Bo\'z','Do\'stlik','Navro\'z','Hamkor'],
+  'Buloqboshi':['Buloqboshi','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Izboskan':['Izboskan','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Jalolquduq':['Jalolquduq','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Xo\'jaobod':['Xo\'jaobod','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Marhamat':['Marhamat','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Oltinko\'l':['Oltinko\'l','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Paxtaobod':['Paxtaobod','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Qo\'rg\'ontepa':['Qo\'rg\'ontepa','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Shahrixon':['Shahrixon','Yangi Shahrixon','Do\'stlik','Navro\'z','Hamkor'],
+  'Ulug\'nor':['Ulug\'nor','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  // FARG'ONA
+  'Farg\'ona shahri':['Farg\'ona','Marg\'ilon darvoza','Eski shahar','Yangi shahar','Hamkor','Navro\'z','Do\'stlik','Bog\'iston','Gulshan','Baxt','Tinchlik'],
+  'Qo\'qon':['Qo\'qon','Eski shahar','Yangi shahar','Do\'stlik','Navro\'z','Hamkor','Gulshan'],
+  'Marg\'ilon':['Marg\'ilon','Eski Marg\'ilon','Yangi Marg\'ilon','Do\'stlik','Navro\'z','Hamkor'],
+  'Rishton':['Rishton','Yangi Rishton','Do\'stlik','Navro\'z','Hamkor'],
+  'Oltiariq':['Oltiariq','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Buvayda':['Buvayda','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Dang\'ara':['Dang\'ara','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Toshloq':['Toshloq','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Uchko\'prik':['Uchko\'prik','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Bag\'dod':['Bag\'dod','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Beshariq':['Beshariq','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Furqat':['Furqat','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'O\'zbekiston':['O\'zbekiston','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Quva':['Quva','Yangi Quva','Do\'stlik','Navro\'z','Hamkor'],
+  'So\'x':['So\'x','Yangi So\'x','Do\'stlik','Navro\'z','Hamkor'],
+  'Yozyovon':['Yozyovon','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  // NAMANGAN
+  'Namangan shahri':['Namangan','Uychi','Chortoq','Yangi shahar','Do\'stlik','Navro\'z','Gulshan','Baxt','Tinchlik','Hamkor','Mustaqillik'],
+  'Chortoq':['Chortoq','Yangi Chortoq','Do\'stlik','Navro\'z','Hamkor'],
+  'Chust':['Chust','Yangi Chust','Do\'stlik','Navro\'z','Hamkor'],
+  'Kosonsoy':['Kosonsoy','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Mingbuloq':['Mingbuloq','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Norin':['Norin','Yangi Norin','Do\'stlik','Navro\'z','Hamkor'],
+  'Pop':['Pop','Yangi Pop','Do\'stlik','Navro\'z','Hamkor'],
+  'To\'raqo\'rg\'on':['To\'raqo\'rg\'on','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Uychi':['Uychi','Yangi Uychi','Do\'stlik','Navro\'z','Hamkor'],
+  'Yangiqo\'rg\'on':['Yangiqo\'rg\'on','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  // SAMARQAND
+  'Samarqand shahri':['Registon','Siyob','Xurmo','Bog\'ishamol','Yangi shahar','Do\'stlik','Navro\'z','Gulshan','Baxt','Tinchlik','Hamkor'],
+  'Kattaqo\'rg\'on':['Kattaqo\'rg\'on','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Urgut':['Urgut','Yangi Urgut','Do\'stlik','Navro\'z','Hamkor'],
+  'Bulung\'ur':['Bulung\'ur','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Ishtixon':['Ishtixon','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Jomboy':['Jomboy','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Narpay':['Narpay','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Nurobod':['Nurobod','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Oqdaryo':['Oqdaryo','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Pastdarg\'om':['Pastdarg\'om','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Paxtachi':['Paxtachi','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Payariq':['Payariq','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Qo\'shrabot':['Qo\'shrabot','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Toyloq':['Toyloq','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  // BUXORO
+  'Buxoro shahri':['Ark','Labi hovuz','Kalon','Yangi shahar','Do\'stlik','Navro\'z','Gulshan','Baxt','Tinchlik','Hamkor'],
+  'G\'ijduvon':['G\'ijduvon','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Kogon':['Kogon','Yangi Kogon','Do\'stlik','Navro\'z','Hamkor'],
+  'Shofirkon':['Shofirkon','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Romitan':['Romitan','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Jondor':['Jondor','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Olot':['Olot','Yangi Olot','Do\'stlik','Navro\'z','Hamkor'],
+  'Peshku':['Peshku','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Qorovulbozor':['Qorovulbozor','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Vobkent':['Vobkent','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  // NAVOIY
+  'Navoiy shahri':['Navoiy','Yangi shahar','Kimyogar','Do\'stlik','Navro\'z','Gulshan','Hamkor','Tinchlik'],
+  'Karmana':['Karmana','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Nurota':['Nurota','Yangi Nurota','Do\'stlik','Navro\'z','Hamkor'],
+  'Uchquduq':['Uchquduq','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Konimex':['Konimex','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Navbahor':['Navbahor','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Qiziltepa':['Qiziltepa','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Tomdi':['Tomdi','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Xatirchi':['Xatirchi','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  // QASHQADARYO
+  'Qarshi shahri':['Qarshi','Yangi shahar','Do\'stlik','Navro\'z','Gulshan','Hamkor','Tinchlik','Baxt'],
+  'Shahrisabz':['Shahrisabz','Eski shahar','Yangi shahar','Do\'stlik','Navro\'z','Hamkor'],
+  'Chiroqchi':['Chiroqchi','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Dehqonobod':['Dehqonobod','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'G\'uzor':['G\'uzor','Yangi G\'uzor','Do\'stlik','Navro\'z','Hamkor'],
+  'Kasbi':['Kasbi','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Ko\'kdala':['Ko\'kdala','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Mirishkor':['Mirishkor','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Muborak':['Muborak','Yangi Muborak','Do\'stlik','Navro\'z','Hamkor'],
+  'Nishon':['Nishon','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Qamashi':['Qamashi','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Yakkabog\'':['Yakkabog\'','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  // SURXONDARYO
+  'Termiz shahri':['Termiz','Yangi shahar','Do\'stlik','Navro\'z','Gulshan','Hamkor','Tinchlik'],
+  'Denov':['Denov','Yangi Denov','Do\'stlik','Navro\'z','Hamkor'],
+  'Angor':['Angor','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Bandixon':['Bandixon','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Boysun':['Boysun','Yangi Boysun','Do\'stlik','Navro\'z','Hamkor'],
+  'Jarqo\'rg\'on':['Jarqo\'rg\'on','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Muzrabot':['Muzrabot','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Oltinsoy':['Oltinsoy','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Qiziriq':['Qiziriq','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Sariosiyo':['Sariosiyo','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Sherobod':['Sherobod','Yangi Sherobod','Do\'stlik','Navro\'z','Hamkor'],
+  'Sho\'rchi':['Sho\'rchi','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Uzun':['Uzun','Yangi Uzun','Do\'stlik','Navro\'z','Hamkor'],
+  // XORAZM
+  'Urganch shahri':['Urganch','Yangi shahar','Do\'stlik','Navro\'z','Gulshan','Hamkor','Tinchlik'],
+  'Xiva':['Ichan qal\'a','Dishan qal\'a','Yangi shahar','Do\'stlik','Navro\'z','Hamkor'],
+  'Bog\'ot':['Bog\'ot','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Gurlan':['Gurlan','Yangi Gurlan','Do\'stlik','Navro\'z','Hamkor'],
+  'Xazorasp':['Xazorasp','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Xonqa':['Xonqa','Yangi Xonqa','Do\'stlik','Navro\'z','Hamkor'],
+  'Kushkupir':['Kushkupir','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Qo\'shko\'pir':['Qo\'shko\'pir','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Tuproqqal\'a':['Tuproqqal\'a','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Yangiariq':['Yangiariq','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Yangibozor':['Yangibozor','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  // QORAQALPOG'ISTON
+  'No\'kis shahri':['No\'kis','Yangi shahar','Do\'stlik','Navro\'z','Gulshan','Hamkor','Tinchlik'],
+  'Beruniy':['Beruniy','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Chimboy':['Chimboy','Yangi Chimboy','Do\'stlik','Navro\'z','Hamkor'],
+  'Ellikkala':['Turtkul','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Kegeyli':['Kegeyli','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Qo\'ng\'irot':['Qo\'ng\'irot','Yangi shahar','Do\'stlik','Navro\'z','Hamkor'],
+  'To\'rtko\'l':['To\'rtko\'l','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Xo\'jayli':['Xo\'jayli','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Amudaryo':['Amudaryo','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Bo\'zatov':['Bo\'zatov','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Mo\'ynoq':['Mo\'ynoq','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Nukus tumani':['Nukus','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Qanliko\'l':['Qanliko\'l','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Taxtako\'pir':['Taxtako\'pir','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  // JIZZAX
+  'Jizzax shahri':['Jizzax','Yangi shahar','Do\'stlik','Navro\'z','Gulshan','Hamkor','Tinchlik'],
+  'G\'allaorol':['G\'allaorol','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Arnasoy':['Arnasoy','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Do\'stlik':['Do\'stlik','Yangi hayot','Navro\'z','Hamkor'],
+  'Forish':['Forish','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Mirzacho\'l':['Mirzacho\'l','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Paxtakor':['Paxtakor','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Sharof Rashidov':['Sharof Rashidov','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Yangiobod':['Yangiobod','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Zarbdor':['Zarbdor','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Zafarobod':['Zafarobod','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Zomin':['Zomin','Yangi Zomin','Do\'stlik','Navro\'z','Hamkor'],
+  // SIRDARYO
+  'Guliston shahri':['Guliston','Yangi shahar','Do\'stlik','Navro\'z','Gulshan','Hamkor','Tinchlik'],
+  'Baxt':['Baxt','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Boyovut':['Boyovut','Yangi Boyovut','Do\'stlik','Navro\'z','Hamkor'],
+  'Guliston tumani':['Guliston','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Havast':['Havast','Yangi Havast','Do\'stlik','Navro\'z','Hamkor'],
+  'Mirzaobod':['Mirzaobod','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Oqoltin':['Oqoltin','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Sardoba':['Sardoba','Yangi Sardoba','Do\'stlik','Navro\'z','Hamkor'],
+  'Sayxunobod':['Sayxunobod','Yangi hayot','Do\'stlik','Navro\'z','Hamkor'],
+  'Yangiyer':['Yangiyer','Yangi shahar','Do\'stlik','Navro\'z','Hamkor']
+};
+
+// ===== MAHALLA → KO'CHA MA'LUMOTLARI =====
+var MAHALLA_KOCHA={
+  // Toshkent shahri asosiy ko'chalari
+  'Chilonzor-1':['Chilonzor ko\'chasi','Qatortol ko\'chasi','A.Navoiy ko\'chasi','Furqat ko\'chasi','1-tor ko\'cha','2-tor ko\'cha','3-tor ko\'cha'],
+  'Chilonzor-2':['Chilonzor ko\'chasi','Bog\'ishamol ko\'chasi','Qoratosh ko\'chasi','1-tor ko\'cha','2-tor ko\'cha'],
+  'Chilonzor-3':['Chilonzor ko\'chasi','Qatortol ko\'chasi','Anhor ko\'chasi','1-tor ko\'cha','2-tor ko\'cha'],
+  'Chilonzor-4':['Chilonzor ko\'chasi','Mustaqillik ko\'chasi','1-tor ko\'cha','2-tor ko\'cha','3-tor ko\'cha'],
+  'Chilonzor-5':['Chilonzor ko\'chasi','Amir Temur ko\'chasi','1-tor ko\'cha','2-tor ko\'cha'],
+  'Yunusobod-1':['Yunusobod ko\'chasi','Amir Temur ko\'chasi','1-tor ko\'cha','2-tor ko\'cha','3-tor ko\'cha'],
+  'Yunusobod-2':['Yunusobod ko\'chasi','Navoiy ko\'chasi','1-tor ko\'cha','2-tor ko\'cha'],
+  'Yunusobod-3':['Yunusobod ko\'chasi','Mustaqillik ko\'chasi','1-tor ko\'cha','2-tor ko\'cha'],
+  'Andijon':['Amir Temur ko\'chasi','Mustaqillik ko\'chasi','Navoiy ko\'chasi','Hamid Olimjon ko\'chasi','Do\'stlik ko\'chasi','Bobur ko\'chasi','1-tor ko\'cha','2-tor ko\'cha'],
+  'Farg\'ona':['Mustaqillik ko\'chasi','Amir Temur ko\'chasi','Navoiy ko\'chasi','Do\'stlik ko\'chasi','1-tor ko\'cha','2-tor ko\'cha'],
+  'Namangan':['Mustaqillik ko\'chasi','Amir Temur ko\'chasi','Navoiy ko\'chasi','Hamza ko\'chasi','1-tor ko\'cha','2-tor ko\'cha'],
+  'Samarqand':['Registon ko\'chasi','Amir Temur ko\'chasi','Navoiy ko\'chasi','Mustaqillik ko\'chasi','1-tor ko\'cha','2-tor ko\'cha'],
+  'Termiz':['Termiz ko\'chasi','Amir Temur ko\'chasi','Navoiy ko\'chasi','Mustaqillik ko\'chasi','1-tor ko\'cha','2-tor ko\'cha'],
+  'Qarshi':['Amir Temur ko\'chasi','Navoiy ko\'chasi','Mustaqillik ko\'chasi','Do\'stlik ko\'chasi','1-tor ko\'cha','2-tor ko\'cha'],
+  'Urganch':['Amir Temur ko\'chasi','Navoiy ko\'chasi','Mustaqillik ko\'chasi','Al-Xorazmiy ko\'chasi','1-tor ko\'cha','2-tor ko\'cha'],
+  'Buxoro':['Navoiy ko\'chasi','Amir Temur ko\'chasi','Mustaqillik ko\'chasi','Bahouddin ko\'chasi','1-tor ko\'cha','2-tor ko\'cha']
+};
+
+// Universal ko'cha nomlari (mahalla topilmasa shu chiqadi)
+var UMUMIY_KOCHA=['Mustaqillik ko\'chasi','Amir Temur ko\'chasi','Navoiy ko\'chasi','Hamid Olimjon ko\'chasi','Do\'stlik ko\'chasi','Navro\'z ko\'chasi','Gulshan ko\'chasi','Bog\'ishamol ko\'chasi','Tinchlik ko\'chasi','Hamkor ko\'chasi','Yangi ko\'cha','1-tor ko\'cha','2-tor ko\'cha','3-tor ko\'cha','4-tor ko\'cha','5-tor ko\'cha','Markaziy ko\'cha','Maktab ko\'chasi','O\'rik ko\'chasi','Bog\' ko\'chasi'];
+
+function onTumanChange(){
+  var tuman=document.getElementById('talabaTuman').value;
+  var mahSel=document.getElementById('talabaMahalla');
+  mahSel.innerHTML='<option value="">Tanlang</option>';
+  document.getElementById('talabaKocha').innerHTML='<option value="">Avval mahalla tanlang</option>';
+  if(tuman && TUMAN_MAHALLA[tuman]){
+    TUMAN_MAHALLA[tuman].forEach(function(m){
+      var o=document.createElement('option');
+      o.value=m;o.textContent=m;mahSel.appendChild(o);
+    });
+  }
+}
+
+function onMahallaChange(){
+  var mahalla=document.getElementById('talabaMahalla').value;
+  var kochaSel=document.getElementById('talabaKocha');
+  kochaSel.innerHTML='<option value="">Tanlang</option>';
+  var list=MAHALLA_KOCHA[mahalla]||UMUMIY_KOCHA;
+  list.forEach(function(k){
+    var o=document.createElement('option');
+    o.value=k;o.textContent=k;kochaSel.appendChild(o);
+  });
+}
 var talabaBaseUmumiy = 0;
 
 function calcTalabaUmumiy(){
@@ -1267,7 +1550,11 @@ function calcTalabaUmumiy(){
 function openAddTalaba(){
   editingTalabaId=null;
   document.getElementById('talabaModalTitle').textContent="Talaba qo'shish";
-  ['talabaFio','talabaTel','talabaTel2','talabaTugilganYil','talabaTugilganKun','talabaViloyat','talabaTuman','talabaMahalla','talabaKocha','talabaUmumiy','talabaBoshlangich'].forEach(function(id){document.getElementById(id).value='';});
+  ['talabaFio','talabaTel','talabaTel2','talabaTugilganYil','talabaTugilganKun','talabaUmumiy','talabaBoshlangich'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('talabaViloyat').value='';
+  document.getElementById('talabaTuman').innerHTML='<option value="">Avval viloyat tanlang</option>';
+  document.getElementById('talabaMahalla').innerHTML='<option value="">Avval tuman tanlang</option>';
+  document.getElementById('talabaKocha').innerHTML='<option value="">Avval mahalla tanlang</option>';
   document.getElementById('talabaOy').value='';
   document.getElementById('talabaAyolInstruktor').checked=false;
   document.getElementById('talabaUmumiyJami').textContent='';
@@ -1292,9 +1579,33 @@ function openEditTalaba(id){
     document.getElementById('talabaTugilganKun').value=t.tugilgan_kun||'';
     document.getElementById('talabaOy').value=t.oy||'';
     document.getElementById('talabaViloyat').value=t.viloyat||'';
-    document.getElementById('talabaTuman').value=t.tuman||'';
-    document.getElementById('talabaMahalla').value=t.mahalla||'';
-    document.getElementById('talabaKocha').value=t.kocha||'';
+    // Viloyat → Tuman → Mahalla → Ko'cha zanjirini tiklash
+    onViloyatChange();
+    if(t.tuman){
+      var ts=document.getElementById('talabaTuman');
+      var found=false;
+      for(var i=0;i<ts.options.length;i++){if(ts.options[i].value===t.tuman){found=true;break;}}
+      if(!found){var o=document.createElement('option');o.value=t.tuman;o.textContent=t.tuman;ts.appendChild(o);}
+      ts.value=t.tuman;
+      onTumanChange();
+    }
+    if(t.mahalla){
+      var ms=document.getElementById('talabaMahalla');
+      var mfound=false;
+      for(var j=0;j<ms.options.length;j++){if(ms.options[j].value===t.mahalla){mfound=true;break;}}
+      if(!mfound){var mo=document.createElement('option');mo.value=t.mahalla;mo.textContent=t.mahalla;ms.appendChild(mo);}
+      ms.value=t.mahalla;
+      onMahallaChange();
+    }
+    // Ko'cha o'rnatish
+    if(t.kocha){
+      var ks=document.getElementById('talabaKocha');
+      var kfound=false;
+      for(var k=0;k<ks.options.length;k++){if(ks.options[k].value===t.kocha){kfound=true;break;}}
+      if(!kfound){var ko2=document.createElement('option');ko2.value=t.kocha;ko2.textContent=t.kocha;ks.appendChild(ko2);}
+      ks.value=t.kocha;
+    }
+    // (ko'cha yuqorida o'rnatildi)
     var ayolInstr = !!t.ayol_instruktor;
     document.getElementById('talabaAyolInstruktor').checked = ayolInstr;
     // Bazaviy summani ko'rsatamiz (ayol instruktor narxisiz)
@@ -1330,7 +1641,9 @@ function saveTalaba(){
   if(!tugilganKun||tugilganKun<1||tugilganKun>31){showAlert("❌ Tug'ilgan kunni to'g'ri kiriting (1–31)!");return;}
   if(!oy){showAlert("❌ Tug'ilgan oyni tanlang!");return;}
   if(!viloyat){showAlert("❌ Viloyatni tanlang!");return;}
-  if(!kocha){showAlert("❌ Ko'cha/Mahalla manzilini kiriting!");return;}
+  var tuman=document.getElementById('talabaTuman').value.trim();
+  if(!tuman){showAlert("❌ Tumanni kiriting!");return;}
+  if(!kocha){showAlert("❌ Ko'cha/Uy manzilini kiriting!");return;}
   if(!umumiy){showAlert("❌ Umumiy to'lov summasini kiriting!");return;}
   if(!editingTalabaId){
     if(isNaN(parseInt(document.getElementById('talabaBoshlangich').value))){showAlert("❌ Boshlang'ich to'lov summasini kiriting (0 bo'lsa ham)!");return;}
@@ -1344,7 +1657,7 @@ function saveTalaba(){
     tugilgan_kun:tugilganKun,
     oy:oy,
     viloyat:viloyat,
-    tuman:document.getElementById('talabaTuman').value,
+    tuman:tuman,
     mahalla:mahalla,
     kocha:kocha,
     ayol_instruktor:ayolInstr,
